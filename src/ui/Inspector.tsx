@@ -52,6 +52,17 @@ export function Inspector() {
                 checked={Boolean(value)}
                 onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.checked)}
               />
+            ) : ctrl?.kind === 'select' ? (
+              <select
+                value={String(value ?? ctrl.options?.[0]?.value ?? '')}
+                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
+              >
+                {ctrl.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             ) : (
               <input
                 type="text"

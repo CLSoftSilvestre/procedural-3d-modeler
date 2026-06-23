@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 3 in progress — primitives + first modifier landed; M1 stable in-browser.
+- **Status:** Phase 3 in progress — primitives, transform, array, mirror, booleans landed.
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — ~30% (primitives + transform done).
+- **Current phase:** Phase 3 (Modeling toolkit) — ~55% (booleans + multi-input validated).
 
 ---
 
@@ -77,9 +77,11 @@
 - [x] Primitives: box (now factory-based), sphere, cylinder, cone, torus, plane
       _(circle TODO)_
 - [x] Transform node (translate / rotate° / scale, per-axis scalar inputs)
-- [ ] Array (linear/radial/grid), mirror
+- [x] Array (linear + radial; grid TODO) and Mirror — added `mergeGeometriesData` +
+      `mirrorGeometry` ops; added `select` inspector control.
 - [ ] Curves + extrude + lathe/revolve
-- [ ] Booleans via three-bvh-csg (union/subtract/intersect)
+- [x] Booleans via three-bvh-csg (union/subtract/intersect) — `geometry/csg.ts` wrapper;
+      **validated the two-geometry-input-socket pattern** through engine + UI.
 - [ ] Displace (seeded noise), twist/bend/taper deformers
 - [ ] Subdivide / smooth / bevel
 - [ ] Normals + UV utilities, vertex color
@@ -149,15 +151,15 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. Array (linear/radial/grid) + mirror — first nodes that **merge** geometry (need a
-   `mergeGeometries` op; informs the multi-input-socket question for booleans).
-2. Booleans via three-bvh-csg (union/subtract/intersect) behind a wrapper + fixtures.
-   This needs **two geometry input sockets** on a node — confirm engine/UI handle it.
-3. Deformers: displace (seeded noise — uses EvalContext.random), twist/bend/taper.
-4. Subdivide / smooth; circle primitive; normals/UV utilities; vertex color.
-5. Material node (standard/physical) + assignment + groups.
-6. Playwright smoke test (add box+output, connect, assert canvas) once the node set is
-   richer — unit tests already cover the add-node/undo regression class.
+1. Deformers: displace (seeded noise via `EvalContext.random`), twist / bend / taper.
+   These need per-vertex math on positions — add a `deformVertices(data, fn)` op.
+2. Subdivide / smooth; circle primitive.
+3. Material node (standard/physical) + assignment; normals/UV utilities; vertex color.
+   Output node likely needs to carry a material alongside geometry — revisit the
+   single-output convention to pass a {geometry, material} bundle to Output.
+4. Curves + extrude + lathe/revolve.
+5. Grid mode for Array; vector3 inspector control (so Transform/offsets use one socket).
+6. Then **M2 review**: build a non-trivial demo model end-to-end; Playwright smoke test.
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -171,6 +173,27 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 3 cont.: array, mirror, booleans (CSG)
+- **Did:**
+  - Geometry ops: `mergeGeometriesData` (BufferGeometryUtils) + `mirrorGeometry`
+    (negative-scale with winding reversal) in `geometry/ops.ts`.
+  - CSG wrapper `geometry/csg.ts` (three-bvh-csg `Evaluator`/`Brush`, groups off,
+    degenerate-operand handling).
+  - Nodes: **Array** (linear + radial, merges copies), **Mirror** (axis + keepOriginal),
+    **Boolean** (union/subtract/intersect) — the first node with **two geometry input
+    sockets**.
+  - UI: added the `select` control to the Inspector (used by mode/axis/operation).
+  - Tests (`modifiers.test.ts`): array tri-count & bbox, mirror symmetry, boolean
+    subtract/union + operand passthrough on disconnect. 27/27 total green.
+- **Verified:** typecheck, 27 tests (incl. real CSG in the test env), lint, build clean.
+- **Decisions/notes:** **Multi-geometry-input sockets work** with no engine changes —
+  `resolveInputs` already keys by socket id, and the editor renders a handle per
+  geometry socket. CSG runs fine in the worker/Node env. Array is one node with a `mode`
+  select (grid still TODO). Mirror's *codegen* leaves a TODO for emitting the index-flip
+  (Phase 4). Identified upcoming need: Output must carry **material + geometry** — will
+  revisit the single-output convention when the Material node lands.
+- **Next:** deformers (displace/twist/bend/taper), then subdivide/smooth, then materials.
 
 ### 2026-06-23 — Phase 3 start: primitives + first modifier
 - **Did:** User confirmed M1 works in-browser. Then began the modeling toolkit:

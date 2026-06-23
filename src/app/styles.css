@@ -233,6 +233,14 @@ body,
 .inspector__field input[type='text'] {
   width: 100%;
 }
+.inspector__field select {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 6px;
+}
 
 .panel__empty {
   color: var(--muted);

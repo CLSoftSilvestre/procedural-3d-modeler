@@ -35,7 +35,21 @@ export function Viewport({ geometry }: ViewportProps) {
     );
     camera.position.set(3, 3, 4);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+    } catch (err) {
+      // WebGL unavailable: show a message instead of crashing the whole app.
+      console.error('WebGL initialization failed:', err);
+      const msg = document.createElement('div');
+      msg.className = 'viewport__nowebgl';
+      msg.textContent = 'WebGL is not available in this browser/context.';
+      mount.appendChild(msg);
+      sceneRef.current = null;
+      return () => {
+        mount.removeChild(msg);
+      };
+    }
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);

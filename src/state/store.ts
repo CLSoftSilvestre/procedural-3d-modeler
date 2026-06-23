@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { current } from 'immer';
 import { createEmptyGraph, GRAPH_VERSION } from '@/graph/types';
 import type { Edge, Graph, GraphNode } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
@@ -48,13 +49,22 @@ function makeNode(type: string, position: { x: number; y: number }): GraphNode {
 
 export const useStore = create<AppState>()(
   immer((set) => {
+    /**
+     * Detach a plain, structurally-cloned copy of the graph from the Immer draft.
+     * `s.graph` inside a producer is an Immer draft (a Proxy) which cannot be
+     * structuredClone'd directly — `current()` converts it to plain data first.
+     */
+    function snapshot(s: AppState): Graph {
+      return structuredClone(current(s.graph));
+    }
+
     /** Snapshot current graph onto the undo stack before a mutation. */
     function pushHistory(s: AppState, coalesceKey: string | null = null): void {
       if (coalesceKey && coalesceKey === s.lastEditKey) {
         s.lastEditKey = coalesceKey;
         return; // coalesce consecutive edits of the same field into one undo step
       }
-      s.past.push(structuredClone(s.graph));
+      s.past.push(snapshot(s));
       if (s.past.length > HISTORY_LIMIT) s.past.shift();
       s.future = [];
       s.lastEditKey = coalesceKey;
@@ -148,7 +158,7 @@ export const useStore = create<AppState>()(
         set((s) => {
           const prev = s.past.pop();
           if (!prev) return;
-          s.future.push(structuredClone(s.graph));
+          s.future.push(snapshot(s));
           s.graph = prev;
           s.selectedNodeId = null;
           s.lastEditKey = null;
@@ -158,7 +168,7 @@ export const useStore = create<AppState>()(
         set((s) => {
           const next = s.future.pop();
           if (!next) return;
-          s.past.push(structuredClone(s.graph));
+          s.past.push(snapshot(s));
           s.graph = next;
           s.selectedNodeId = null;
           s.lastEditKey = null;

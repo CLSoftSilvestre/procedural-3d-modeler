@@ -3,8 +3,10 @@ import type { NodeDef } from './NodeDef';
 const registry = new Map<string, NodeDef>();
 
 export function registerNode(def: NodeDef): void {
-  if (registry.has(def.type)) {
-    throw new Error(`Node type already registered: ${def.type}`);
+  // Overwrite rather than throw: HMR can re-run registration after a module reload,
+  // and a throw there would break the whole module graph.
+  if (registry.has(def.type) && import.meta.env?.DEV) {
+    console.debug(`Re-registering node type: ${def.type}`);
   }
   registry.set(def.type, def);
 }

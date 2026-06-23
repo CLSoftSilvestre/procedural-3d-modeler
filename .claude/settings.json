@@ -9,7 +9,15 @@
       "Bash(echo \"exit: $?\")",
       "Bash(git add *)",
       "Bash(git rm *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(lsof -ti:5173,5174)",
+      "Bash(xargs kill -9)",
+      "Bash(git commit *)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
     ]
   }
 }

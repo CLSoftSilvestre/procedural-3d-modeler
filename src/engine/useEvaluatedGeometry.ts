@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Graph } from '@/graph/types';
 import type { GeometryData } from '@/geometry/GeometryData';
 import { EvalService } from './EvalService';
@@ -12,33 +12,43 @@ interface EvalState {
 
 /**
  * Evaluate `graph` off the main thread, returning the latest geometry/errors.
- * Owns a single EvalService for the component's lifetime.
+ *
+ * The EvalService (and its worker) is created in an effect and torn down on unmount,
+ * so it survives React StrictMode's mount→unmount→remount cycle correctly: the worker
+ * is recreated on remount rather than being left terminated.
  */
 export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
-  const serviceRef = useRef<EvalService | null>(null);
+  const [service, setService] = useState<EvalService | null>(null);
   const [state, setState] = useState<EvalState>({
     geometry: null,
     errors: [],
     evaluating: false,
   });
 
-  if (!serviceRef.current) serviceRef.current = new EvalService();
-
   useEffect(() => {
+    let svc: EvalService | null = null;
+    try {
+      svc = new EvalService();
+      setService(svc);
+    } catch (err) {
+      setState((s) => ({
+        ...s,
+        errors: [{ nodeId: '', message: `Failed to start evaluation worker: ${String(err)}` }],
+      }));
+    }
     return () => {
-      serviceRef.current?.dispose();
-      serviceRef.current = null;
+      svc?.dispose();
+      setService(null);
     };
   }, []);
 
   useEffect(() => {
-    const service = serviceRef.current;
     if (!service) return;
     setState((s) => ({ ...s, evaluating: true }));
     service.request(graph, seed, (result) => {
       setState({ geometry: result.geometry, errors: result.errors, evaluating: false });
     });
-  }, [graph, seed]);
+  }, [service, graph, seed]);
 
   return state;
 }

@@ -251,6 +251,44 @@ body,
   font-size: 12px;
 }
 
+/* error boundary */
+.errboundary {
+  padding: 24px;
+  max-width: 800px;
+  margin: 40px auto;
+  color: var(--text);
+}
+.errboundary__msg {
+  color: #ff9b9b;
+  font-family: ui-monospace, monospace;
+  background: var(--panel);
+  padding: 10px;
+  border-radius: 6px;
+}
+.errboundary pre {
+  white-space: pre-wrap;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: auto;
+}
+.errboundary button {
+  margin-top: 12px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.viewport__nowebgl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+}
+
 /* react flow dark tweaks */
 .react-flow__attribution {
   display: none;

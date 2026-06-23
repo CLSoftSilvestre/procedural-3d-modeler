@@ -7,6 +7,7 @@ import { displaceNode } from './deformers/displace';
 import { twistNode } from './deformers/twist';
 import { taperNode } from './deformers/taper';
 import { booleanNode } from './booleans/boolean';
+import { materialNode } from './material/material';
 import { outputNode } from './output/output';
 
 let registered = false;
@@ -23,6 +24,7 @@ export function registerBuiltinNodes(): void {
   registerNode(twistNode);
   registerNode(taperNode);
   registerNode(booleanNode);
+  registerNode(materialNode);
   registerNode(outputNode);
 }
 

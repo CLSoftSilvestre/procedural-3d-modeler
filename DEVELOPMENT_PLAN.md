@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 3 in progress — primitives, transform, array, mirror, booleans, deformers.
+- **Status:** Phase 3 in progress — primitives, modifiers, deformers, booleans, materials.
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — ~70% (deformers in; materials next).
+- **Current phase:** Phase 3 (Modeling toolkit) — ~80% (materials in; curves/subdivide left).
 
 ---
 
@@ -88,7 +88,10 @@
 - [ ] Bend deformer (deferred from this batch)
 - [ ] Subdivide / smooth / bevel
 - [ ] Normals + UV utilities, vertex color
-- [ ] Material node (standard/physical) + assignment
+- [x] Material node (standard/physical) + assignment — **new `material` socket type +
+      `MaterialSpec`**; Output gained a Material input; engine returns `{geometry,
+      material}`; viewport builds the three.js material. Inspector got a color control;
+      handles render for connectable socket types. See ADR-006.
 - **Exit criteria (M2):** can build a non-trivial model (e.g. a parametric goblet or
   modular building) end-to-end in the viewport.
 
@@ -154,15 +157,14 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. Material node (standard/physical) + assignment. **Architecture decision needed:** the
-   value flowing to Output must become a `{ geometry, material }` bundle, not just
-   geometry. Plan: introduce a `material` socket type + a `MeshData` output type; Output
-   accepts geometry directly (default material) OR a MeshData. Keep viewport + future
-   codegen in sync.
-2. Subdivide / smooth; circle primitive.
-3. Curves + extrude + lathe/revolve.
-4. Bend deformer; Subdivide/smooth; grid mode for Array; vector3 inspector control.
-5. Then **M2 review**: build a non-trivial demo model end-to-end; Playwright smoke test.
+1. Curves + extrude + lathe/revolve (profile-based generators) — biggest remaining
+   modeling capability gap.
+2. Circle primitive; Subdivide / smooth modifiers.
+3. Multi-material support: Boolean/merge produce groups; let Output take multiple
+   materials (array) — builds on ADR-006.
+4. Bend deformer; grid mode for Array; vector3 inspector control; vertex color.
+5. Then **M2 review**: build a non-trivial textured demo model end-to-end; Playwright
+   smoke test. After M2 → Phase 4 (the code generator + parity tests).
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -176,6 +178,27 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 3 cont.: Material node (new socket type)
+- **Did:** Implemented materials as planned, with a refined design (ADR-006):
+  - `material/MaterialData.ts`: `MaterialSpec` (plain PBR description w/ `kind`
+    discriminator), `defaultMaterialSpec`, `isMaterialSpec`, `toThreeMaterial`.
+  - Graph types: added `'material'` socket type + `MaterialSpec` to `SocketValue`;
+    `isConnectableType()`; introduced `LiteralValue` alias for node-stored values.
+  - **Material** node (`material.standard`): type/color/roughness/metalness/opacity/
+    flatShading/wireframe → outputs a `material`. `mat()` helper added.
+  - Output node gained a **Material input**; `EvalResult` now carries `material`; engine
+    reads both Output sockets. Threaded material through hook → App → Viewport
+    (`toThreeMaterial`, DoubleSide, default when unconnected).
+  - UI: handles now render for **any connectable socket type** (geometry + material,
+    color-coded); Inspector got a **color** control.
+  - Tests (`material.test.ts`): material flows to output when connected (color/metalness/
+    type), null when not. 34/34 total green.
+- **Decision (ADR-006):** material is a **separate socket** combined at Output, not a
+  geometry+material bundle — simpler, keeps modifiers material-agnostic, one value type
+  per socket.
+- **Verified:** typecheck, 34 tests, lint, build clean.
+- **Next:** curves/extrude/lathe (biggest remaining gap), then circle/subdivide, then M2.
 
 ### 2026-06-23 — Phase 3 cont.: deformers (displace, twist, taper)
 - **Did:**

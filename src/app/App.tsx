@@ -90,7 +90,7 @@ export function App() {
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
 
-  const { geometry, errors, evaluating } = useEvaluatedGeometry(graph);
+  const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
 
   // Keyboard shortcuts for undo/redo.
   useEffect(() => {
@@ -131,7 +131,7 @@ export function App() {
             </ReactFlowProvider>
           </section>
           <section className="app__viewport">
-            <Viewport geometry={geometry} />
+            <Viewport geometry={geometry} material={material} />
             {errors.length > 0 && (
               <div className="viewport__errors">
                 {errors.map((e, i) => (

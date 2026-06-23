@@ -13,7 +13,8 @@
       "Bash(pkill -f \"vite\")",
       "Bash(lsof -ti:5173,5174)",
       "Bash(xargs kill -9)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(perl -0pi -e 's/return \\\\{ geometry: null, errors \\\\};/return { geometry: null, material: null, errors };/g' src/engine/evaluate.ts)"
     ],
     "additionalDirectories": [
       "/tmp",

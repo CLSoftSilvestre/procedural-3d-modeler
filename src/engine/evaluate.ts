@@ -1,4 +1,5 @@
 import type { GeometryData } from '@/geometry/GeometryData';
+import type { MaterialSpec } from '@/material/MaterialData';
 import { mulberry32 } from '@/geometry/rng';
 import type { Edge, Graph, GraphNode, SocketValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
@@ -12,6 +13,7 @@ export interface EvalError {
 
 export interface EvalResult {
   geometry: GeometryData | null;
+  material: MaterialSpec | null;
   errors: EvalError[];
 }
 
@@ -58,11 +60,11 @@ export class EvalCache {
  */
 export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalResult {
   const errors: EvalError[] = [];
-  if (!graph.outputNodeId) return { geometry: null, errors };
+  if (!graph.outputNodeId) return { geometry: null, material: null, errors };
 
   const nodesById = new Map(graph.nodes.map((n) => [n.id, n]));
   const order = topoSort(graph, errors);
-  if (!order) return { geometry: null, errors };
+  if (!order) return { geometry: null, material: null, errors };
 
   const outputs = new Map<string, Record<string, SocketValue>>();
   const nodeHashes = new Map<string, string>();
@@ -99,17 +101,18 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
       cache?.set(hash, result);
     } catch (err) {
       errors.push({ nodeId, message: err instanceof Error ? err.message : String(err) });
-      return { geometry: null, errors };
+      return { geometry: null, material: null, errors };
     }
   }
 
   cache?.sweep();
 
   const outNode = nodesById.get(graph.outputNodeId);
-  if (!outNode) return { geometry: null, errors };
+  if (!outNode) return { geometry: null, material: null, errors };
   const outInputs = resolveInputs(outNode, graph.edges, outputs);
   const geometry = (outInputs.geometry as GeometryData | undefined) ?? null;
-  return { geometry, errors };
+  const material = (outInputs.material as MaterialSpec | undefined) ?? null;
+  return { geometry, material, errors };
 }
 
 /** Stable stringification of a node's literal values (sorted keys). */

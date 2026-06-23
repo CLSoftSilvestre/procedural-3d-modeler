@@ -62,6 +62,12 @@ export function Inspector() {
                 checked={Boolean(value)}
                 onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.checked)}
               />
+            ) : ctrl?.kind === 'color' ? (
+              <input
+                type="color"
+                value={String(value ?? '#ffffff')}
+                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
+              />
             ) : ctrl?.kind === 'select' ? (
               <select
                 value={String(value ?? ctrl.options?.[0]?.value ?? '')}

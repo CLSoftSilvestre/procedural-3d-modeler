@@ -185,4 +185,12 @@ src/
 - **ADR-004 — Evaluation in Web Worker with dirty+hash caching.** Main-thread fps + cheap
   undo/redo. (2026-06-23)
 - **ADR-005 — three-bvh-csg for booleans.** Best maintained web mesh-boolean lib. (2026-06-23)
+- **ADR-006 — Material as a separate socket type, combined at Output.** Rather than
+  bundling geometry+material into one flowing value, materials travel on their own
+  `material` socket (`MaterialSpec`, a plain serializable PBR description) and are joined
+  only at the Output node's second input. Keeps all geometry modifiers unaware of
+  materials, keeps one value type per socket, and matches node-graph conventions. The
+  engine returns `{ geometry, material }` from Output; the viewport builds the three.js
+  material (default if none connected). Sockets whose type is "connectable"
+  (`geometry`/`material`) render a handle; scalars are edited in the inspector. (2026-06-23)
 - _Add new ADRs here as decisions are made._

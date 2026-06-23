@@ -314,6 +314,22 @@ body,
   color: var(--muted);
 }
 
+/* socket handle colors by type */
+.handle--geometry {
+  background: #6ea8fe !important;
+}
+.handle--material {
+  background: #f2c14e !important;
+}
+.inspector__field input[type='color'] {
+  width: 48px;
+  height: 26px;
+  padding: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
 /* react flow dark tweaks */
 .react-flow__attribution {
   display: none;

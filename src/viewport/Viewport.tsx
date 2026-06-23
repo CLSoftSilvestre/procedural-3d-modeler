@@ -3,16 +3,18 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { GeometryData } from '@/geometry/GeometryData';
 import { toBufferGeometry } from '@/geometry/GeometryData';
+import { defaultMaterialSpec, toThreeMaterial, type MaterialSpec } from '@/material/MaterialData';
 
 interface ViewportProps {
   geometry: GeometryData | null;
+  material: MaterialSpec | null;
 }
 
 /**
  * three.js viewport. Owns the scene/camera/renderer imperatively; React only feeds it
  * the evaluated geometry. We dogfood three.js here — it is the target runtime.
  */
-export function Viewport({ geometry }: ViewportProps) {
+export function Viewport({ geometry, material }: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -108,17 +110,13 @@ export function Viewport({ geometry }: ViewportProps) {
     }
 
     if (geometry) {
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x6ea8fe,
-        roughness: 0.5,
-        metalness: 0.05,
-        flatShading: false,
-      });
-      const mesh = new THREE.Mesh(toBufferGeometry(geometry), material);
+      const mat = toThreeMaterial(material ?? defaultMaterialSpec());
+      mat.side = THREE.DoubleSide; // procedural meshes can have open faces
+      const mesh = new THREE.Mesh(toBufferGeometry(geometry), mat);
       scene.add(mesh);
       meshRef.current = mesh;
     }
-  }, [geometry]);
+  }, [geometry, material]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }

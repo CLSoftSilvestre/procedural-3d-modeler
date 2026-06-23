@@ -14,6 +14,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
+import { isConnectableType } from '@/graph/types';
 
 /** Generic node renderer driven by the node definition's sockets. */
 function GraphNodeView({ id, data }: NodeProps) {
@@ -27,11 +28,12 @@ function GraphNodeView({ id, data }: NodeProps) {
       <div className="graph-node__body">
         {def.inputs.map((s, i) => (
           <div className="graph-node__row" key={s.id}>
-            {s.type === 'geometry' && (
+            {isConnectableType(s.type) && (
               <Handle
                 type="target"
                 position={Position.Left}
                 id={s.id}
+                className={`handle handle--${s.type}`}
                 style={{ top: 34 + i * 20 }}
               />
             )}
@@ -45,6 +47,7 @@ function GraphNodeView({ id, data }: NodeProps) {
               type="source"
               position={Position.Right}
               id={s.id}
+              className={`handle handle--${s.type}`}
               style={{ top: 34 + (def.inputs.length + i) * 20 }}
             />
           </div>

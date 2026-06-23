@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { Graph } from '@/graph/types';
 import type { GeometryData } from '@/geometry/GeometryData';
+import type { MaterialSpec } from '@/material/MaterialData';
 import { EvalService } from './EvalService';
 import type { EvalError } from './evaluate';
 
 interface EvalState {
   geometry: GeometryData | null;
+  material: MaterialSpec | null;
   errors: EvalError[];
   evaluating: boolean;
 }
@@ -21,6 +23,7 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
   const [service, setService] = useState<EvalService | null>(null);
   const [state, setState] = useState<EvalState>({
     geometry: null,
+    material: null,
     errors: [],
     evaluating: false,
   });
@@ -46,7 +49,12 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
     if (!service) return;
     setState((s) => ({ ...s, evaluating: true }));
     service.request(graph, seed, (result) => {
-      setState({ geometry: result.geometry, errors: result.errors, evaluating: false });
+      setState({
+        geometry: result.geometry,
+        material: result.material,
+        errors: result.errors,
+        evaluating: false,
+      });
     });
   }, [service, graph, seed]);
 

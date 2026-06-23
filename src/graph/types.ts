@@ -1,4 +1,5 @@
 import type { GeometryData } from '@/geometry/GeometryData';
+import type { MaterialSpec } from '@/material/MaterialData';
 
 /**
  * Graph IR — pure, serializable description of the model.
@@ -7,21 +8,37 @@ import type { GeometryData } from '@/geometry/GeometryData';
  */
 
 /** Value types that can travel along sockets and be stored as node inputs. */
-export type SocketType = 'geometry' | 'number' | 'vector3' | 'boolean' | 'string' | 'color';
+export type SocketType =
+  | 'geometry'
+  | 'material'
+  | 'number'
+  | 'vector3'
+  | 'boolean'
+  | 'string'
+  | 'color';
 
 export type SocketValue =
   | GeometryData
+  | MaterialSpec
   | number
   | [number, number, number]
   | boolean
   | string;
+
+/** Socket types that carry complex objects over edges (rendered with a connection handle). */
+export function isConnectableType(type: SocketType): boolean {
+  return type === 'geometry' || type === 'material';
+}
+
+/** Plain literal values that can be stored on a node and edited in the inspector. */
+export type LiteralValue = Exclude<SocketValue, GeometryData | MaterialSpec>;
 
 export interface SocketSpec {
   id: string;
   label: string;
   type: SocketType;
   /** Default literal value when no edge is connected (not used for geometry inputs). */
-  default?: Exclude<SocketValue, GeometryData>;
+  default?: LiteralValue;
   /** UI hints for the inspector control. */
   control?: {
     kind: 'slider' | 'number' | 'vector' | 'checkbox' | 'text' | 'color' | 'select';
@@ -37,7 +54,7 @@ export interface GraphNode {
   type: string; // NodeDef.type, e.g. "primitive.box"
   position: { x: number; y: number };
   /** Literal input values keyed by socket id (overridden by connected edges). */
-  values: Record<string, Exclude<SocketValue, GeometryData>>;
+  values: Record<string, LiteralValue>;
   title?: string;
 }
 
@@ -54,7 +71,7 @@ export interface ExposedParam {
   name: string; // identifier used in generated code, e.g. "radius"
   label: string;
   type: SocketType;
-  default: Exclude<SocketValue, GeometryData>;
+  default: LiteralValue;
   min?: number;
   max?: number;
   step?: number;

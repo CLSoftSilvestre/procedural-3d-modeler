@@ -1,0 +1,67 @@
+import { useStore } from '@/state/store';
+import { requireNodeDef } from '@/nodes/registry';
+
+export function Inspector() {
+  const selectedNodeId = useStore((s) => s.selectedNodeId);
+  const node = useStore((s) => s.graph.nodes.find((n) => n.id === s.selectedNodeId));
+  const setNodeValue = useStore((s) => s.setNodeValue);
+
+  if (!node || !selectedNodeId) {
+    return <div className="panel__empty">Select a node to edit its properties.</div>;
+  }
+
+  const def = requireNodeDef(node.type);
+  const editable = def.inputs.filter((s) => s.type !== 'geometry');
+
+  return (
+    <div className="inspector">
+      <h3 className="inspector__title">{def.label}</h3>
+      {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
+      {editable.map((socket) => {
+        const value = node.values[socket.id];
+        const ctrl = socket.control;
+        return (
+          <label className="inspector__field" key={socket.id}>
+            <span className="inspector__label">{socket.label}</span>
+            {ctrl?.kind === 'slider' || ctrl?.kind === 'number' ? (
+              <div className="inspector__row">
+                {ctrl.kind === 'slider' && (
+                  <input
+                    type="range"
+                    min={ctrl.min}
+                    max={ctrl.max}
+                    step={ctrl.step}
+                    value={Number(value ?? 0)}
+                    onChange={(e) =>
+                      setNodeValue(selectedNodeId, socket.id, Number(e.target.value))
+                    }
+                  />
+                )}
+                <input
+                  type="number"
+                  min={ctrl.min}
+                  max={ctrl.max}
+                  step={ctrl.step}
+                  value={Number(value ?? 0)}
+                  onChange={(e) => setNodeValue(selectedNodeId, socket.id, Number(e.target.value))}
+                />
+              </div>
+            ) : ctrl?.kind === 'checkbox' ? (
+              <input
+                type="checkbox"
+                checked={Boolean(value)}
+                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.checked)}
+              />
+            ) : (
+              <input
+                type="text"
+                value={String(value ?? '')}
+                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
+              />
+            )}
+          </label>
+        );
+      })}
+    </div>
+  );
+}

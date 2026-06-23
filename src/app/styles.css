@@ -1,0 +1,208 @@
+:root {
+  --bg: #16161a;
+  --panel: #1f1f26;
+  --panel-2: #26262f;
+  --border: #34343f;
+  --text: #e6e6ec;
+  --muted: #9a9aab;
+  --accent: #6ea8fe;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+.app__brand {
+  font-weight: 600;
+}
+.app__sub {
+  color: var(--muted);
+}
+.app__stats {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.app__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 180px 1fr 260px;
+  min-height: 0;
+}
+
+.app__palette,
+.app__inspector {
+  background: var(--panel);
+  overflow-y: auto;
+}
+.app__palette {
+  border-right: 1px solid var(--border);
+}
+.app__inspector {
+  border-left: 1px solid var(--border);
+  padding: 12px;
+}
+
+.app__center {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-width: 0;
+}
+.app__graph {
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  min-height: 0;
+}
+.app__viewport {
+  position: relative;
+  min-height: 0;
+}
+
+/* palette */
+.palette {
+  padding: 10px;
+}
+.palette__group {
+  margin-bottom: 14px;
+}
+.palette__category {
+  display: block;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.palette__btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.palette__btn:hover {
+  border-color: var(--accent);
+}
+
+/* graph nodes */
+.graph-node {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-width: 150px;
+  font-size: 12px;
+}
+.graph-node.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.graph-node__title {
+  padding: 6px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 8px 8px 0 0;
+}
+.graph-node__body {
+  padding: 6px 10px;
+}
+.graph-node__row {
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+.graph-node__row--out {
+  justify-content: flex-end;
+}
+.graph-node__label {
+  color: var(--muted);
+}
+
+/* inspector */
+.inspector__title {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+.inspector__field {
+  display: block;
+  margin-bottom: 10px;
+}
+.inspector__label {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.inspector__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.inspector__row input[type='range'] {
+  flex: 1;
+}
+.inspector__row input[type='number'],
+.inspector__field input[type='text'] {
+  width: 64px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.inspector__field input[type='text'] {
+  width: 100%;
+}
+
+.panel__empty {
+  color: var(--muted);
+  padding: 12px;
+}
+
+/* viewport */
+.viewport__errors {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(120, 20, 20, 0.85);
+  color: #ffd9d9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* react flow dark tweaks */
+.react-flow__attribution {
+  display: none;
+}

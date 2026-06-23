@@ -16,6 +16,45 @@ export function transformGeometry(data: GeometryData, matrix: THREE.Matrix4): Ge
 
 export type Axis = 'x' | 'y' | 'z';
 
+/**
+ * Apply a per-vertex function to positions, returning new GeometryData with normals
+ * recomputed. The input is never mutated (its buffers are copied), so cached upstream
+ * geometry stays intact. `fn` may read the vertex normal (for displacement along it).
+ */
+export function deformGeometry(
+  data: GeometryData,
+  fn: (p: THREE.Vector3, normal: THREE.Vector3, i: number) => void,
+): GeometryData {
+  if (data.metadata.triCount === 0) return data;
+  const positions = new Float32Array(data.positions);
+  const normals = data.normals;
+  const p = new THREE.Vector3();
+  const n = new THREE.Vector3();
+  const count = positions.length / 3;
+  for (let i = 0; i < count; i++) {
+    p.set(positions[i * 3]!, positions[i * 3 + 1]!, positions[i * 3 + 2]!);
+    if (normals) n.set(normals[i * 3]!, normals[i * 3 + 1]!, normals[i * 3 + 2]!);
+    else n.set(0, 0, 0);
+    fn(p, n, i);
+    positions[i * 3] = p.x;
+    positions[i * 3 + 1] = p.y;
+    positions[i * 3 + 2] = p.z;
+  }
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  if (data.indices) geom.setIndex(new THREE.BufferAttribute(data.indices.slice(), 1));
+  if (data.uvs) geom.setAttribute('uv', new THREE.BufferAttribute(data.uvs.slice(), 2));
+  geom.computeVertexNormals();
+  const out = fromBufferGeometry(geom);
+  geom.dispose();
+  return out;
+}
+
+/** Read/write a vector's coordinate by axis. */
+export function axisIndex(axis: Axis): 0 | 1 | 2 {
+  return axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+}
+
 /** Merge several geometries into one. Empty inputs are skipped. */
 export function mergeGeometriesData(list: GeometryData[]): GeometryData {
   const nonEmpty = list.filter((d) => d.metadata.triCount > 0);

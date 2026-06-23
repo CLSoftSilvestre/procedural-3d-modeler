@@ -3,6 +3,9 @@ import { primitiveNodes } from './primitives/primitives';
 import { transformNode } from './modifiers/transform';
 import { arrayNode } from './modifiers/array';
 import { mirrorNode } from './modifiers/mirror';
+import { displaceNode } from './deformers/displace';
+import { twistNode } from './deformers/twist';
+import { taperNode } from './deformers/taper';
 import { booleanNode } from './booleans/boolean';
 import { outputNode } from './output/output';
 
@@ -16,6 +19,9 @@ export function registerBuiltinNodes(): void {
   registerNode(transformNode);
   registerNode(arrayNode);
   registerNode(mirrorNode);
+  registerNode(displaceNode);
+  registerNode(twistNode);
+  registerNode(taperNode);
   registerNode(booleanNode);
   registerNode(outputNode);
 }

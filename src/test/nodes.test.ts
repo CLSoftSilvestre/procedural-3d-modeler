@@ -89,7 +89,7 @@ describe('transform modifier (geometry-in -> geometry-out)', () => {
 
 describe('registry', () => {
   it('registers the expected number of nodes', () => {
-    // 6 primitives + transform + array + mirror + boolean + output
-    expect(allNodeDefs().length).toBe(11);
+    // 6 primitives + transform + array + mirror + displace + twist + taper + boolean + output
+    expect(allNodeDefs().length).toBe(14);
   });
 });

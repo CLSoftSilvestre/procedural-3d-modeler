@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 3 in progress — primitives, transform, array, mirror, booleans landed.
+- **Status:** Phase 3 in progress — primitives, transform, array, mirror, booleans, deformers.
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — ~55% (booleans + multi-input validated).
+- **Current phase:** Phase 3 (Modeling toolkit) — ~70% (deformers in; materials next).
 
 ---
 
@@ -82,7 +82,10 @@
 - [ ] Curves + extrude + lathe/revolve
 - [x] Booleans via three-bvh-csg (union/subtract/intersect) — `geometry/csg.ts` wrapper;
       **validated the two-geometry-input-socket pattern** through engine + UI.
-- [ ] Displace (seeded noise), twist/bend/taper deformers
+- [x] Displace (seeded Perlin noise), Twist, Taper deformers — added `deformGeometry`
+      op (per-vertex map + normal recompute) and `geometry/noise.ts`. **Bend deferred**
+      (math fiddly; tracked below).
+- [ ] Bend deformer (deferred from this batch)
 - [ ] Subdivide / smooth / bevel
 - [ ] Normals + UV utilities, vertex color
 - [ ] Material node (standard/physical) + assignment
@@ -151,15 +154,15 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. Deformers: displace (seeded noise via `EvalContext.random`), twist / bend / taper.
-   These need per-vertex math on positions — add a `deformVertices(data, fn)` op.
+1. Material node (standard/physical) + assignment. **Architecture decision needed:** the
+   value flowing to Output must become a `{ geometry, material }` bundle, not just
+   geometry. Plan: introduce a `material` socket type + a `MeshData` output type; Output
+   accepts geometry directly (default material) OR a MeshData. Keep viewport + future
+   codegen in sync.
 2. Subdivide / smooth; circle primitive.
-3. Material node (standard/physical) + assignment; normals/UV utilities; vertex color.
-   Output node likely needs to carry a material alongside geometry — revisit the
-   single-output convention to pass a {geometry, material} bundle to Output.
-4. Curves + extrude + lathe/revolve.
-5. Grid mode for Array; vector3 inspector control (so Transform/offsets use one socket).
-6. Then **M2 review**: build a non-trivial demo model end-to-end; Playwright smoke test.
+3. Curves + extrude + lathe/revolve.
+4. Bend deformer; Subdivide/smooth; grid mode for Array; vector3 inspector control.
+5. Then **M2 review**: build a non-trivial demo model end-to-end; Playwright smoke test.
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -173,6 +176,25 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 3 cont.: deformers (displace, twist, taper)
+- **Did:**
+  - `geometry/noise.ts`: seeded improved-Perlin 3D noise (deterministic per seed).
+  - `geometry/ops.ts`: `deformGeometry(data, fn)` — per-vertex map that never mutates the
+    input (copies buffers) and recomputes normals; `axisIndex` helper.
+  - Nodes: **Displace** (noise along normals, strength/frequency/seed), **Twist**
+    (rotate around axis by °/unit of position), **Taper** (scale perpendicular axes from
+    1→endScale along an axis).
+  - Tests (`deformers.test.ts`): noise determinism; displace preserves vertex count,
+    moves verts, deterministic, zero-strength no-op; twist changes positions; taper
+    collapses the cross-section. 32/32 total green.
+- **Verified:** typecheck, 32 tests, lint, build clean.
+- **Decisions/notes:** **Bend deferred** — its deformer math is error-prone and I chose
+  correct/tested over rushed. Deformer `codegen` is **provisional** (emits per-vertex
+  loops; displace references a `noise3()` helper the Phase-4 generator will inject) —
+  fine since codegen isn't executed until Phase 4. Next big call is the Material node,
+  which forces Output to carry geometry+material (see Next Up #1).
+- **Next:** Material node + the geometry→{geometry,material} output change.
 
 ### 2026-06-23 — Fix: node deletion didn't work
 - **Reported:** user couldn't delete a node.

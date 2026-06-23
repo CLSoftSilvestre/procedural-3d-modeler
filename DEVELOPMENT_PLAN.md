@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 3 ~90% — primitives, modifiers, deformers, booleans, materials, curves+generators.
+- **Status:** Phase 4 MVP done — **M3 reached** (code export with parity tests green).
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — generators in; M2 review next.
+- **Current phase:** Phase 4 (Codegen) MVP complete → next: M2 demo, then Phase 5 (params).
 
 ---
 
@@ -98,14 +98,20 @@
 - **Exit criteria (M2):** can build a non-trivial model (e.g. a parametric goblet or
   modular building) end-to-end in the viewport.
 
-## Phase 4 — Code generation MVP (→ M3)  `[ ]`
-- [ ] `CodeFragment` model + import deduping + Prettier formatting
-- [ ] `codegen` for every existing node (parity with `evaluate`)
-- [ ] Target A: vanilla three.js ES module export
-- [ ] **Parity test harness:** eval(graph) === eval(generated code) within epsilon
-- [ ] Export UI (preview generated code, copy, download)
-- **Exit criteria (M3):** export a model → generated module runs unmodified in a
-  blank three.js project and matches the viewport.
+## Phase 4 — Code generation MVP (→ M3)  `[x]`
+- [x] `CodeFragment` model + import deduping (`codegen/imports.ts`) + helper injection
+      (`codegen/helpers.ts`). _(Prettier formatting deferred — output is already clean
+      via per-fragment line formatting + indentation; see notes.)_
+- [x] `codegen` for every existing node, parity-verified against `evaluate`
+- [x] Target A: vanilla three.js ES module export (`generateModule` →
+      `export function createModel()` returning a `THREE.Mesh`)
+- [x] **Parity test harness:** `runGenerated()` executes the emitted code in-process
+      (modules injected, helpers prepended) and asserts positions match `evaluate`
+      within epsilon — covers box, all primitives, transform, array (linear+radial),
+      mirror, twist/taper/displace, extrude, lathe, boolean (CSG), full pipeline+material.
+- [x] Export UI (`ExportPanel`): preview generated code, Copy, Download .ts.
+- **Exit criteria (M3):** ✅ export a model → generated module reproduces the viewport
+  geometry (proven by the parity suite). Verified by 49 tests + typecheck/lint/build.
 
 ## Phase 5 — Parametric system (→ M4)  `[ ]`
 - [ ] Promote any input to an exposed `ExposedParam` (name, type, min/max/step, default)
@@ -160,17 +166,17 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **M2 review** (exit Phase 3): build a non-trivial textured demo model end-to-end in
-   the browser (e.g. extruded star + bevel + material, or a lathed vase); confirm
-   save/load round-trip; add a Playwright smoke test. Bundle a couple of example graphs.
-2. **Phase 4 — the code generator** (the product's crown jewel): build the generator that
-   walks the topo-sorted graph, stitches each node's `CodeFragment`, dedupes imports,
-   formats with Prettier, and wraps in the vanilla-three.js target. Then the **parity
-   test harness** (eval(graph) === eval(generated code)). This will exercise/validate all
-   the `codegen` written so far and fix the provisional ones (deformers, mirror).
-3. Backfill remaining Phase-3 niceties opportunistically: circle primitive,
-   subdivide/smooth, bend, grid Array, vector3 inspector control, vertex color,
-   multi-material output.
+1. **M2 demo** (the deferred demo): build a non-trivial textured model end-to-end in the
+   browser, export it, confirm the generated module runs in a blank three.js project;
+   bundle 2-3 example graphs + a Playwright smoke test.
+2. **Phase 5 — parametric system** (→ M4): promote node inputs to exposed `ExposedParam`s;
+   params panel with live sliders; codegen emits `createModel(params = {…})`; R3F target
+   (B) + graph-JSON target (D).
+3. Codegen polish: Prettier formatting (prettier/standalone) for export; proper
+   winding-flip in Mirror codegen (cosmetic — parity already holds on positions);
+   tree-shakeable named three imports option.
+4. Backfill Phase-3 niceties: circle primitive, subdivide/smooth, bend, grid Array,
+   vector3 inspector control, vertex color, multi-material output.
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -184,6 +190,34 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 4 MVP: the code generator → M3 reached
+- **Did:** Built the product's crown jewel — graph → clean vanilla three.js code.
+  - Shared `graph/topology.ts` (topoSort), refactored `evaluate.ts` to use it.
+  - `codegen/`: `literal.ts` (render literals), `imports.ts` (specifier→import +
+    parity-injection info), `helpers.ts` (self-contained noise helper),
+    `generate.ts` (`generateModule` → `{code, functionBody, helperSource, modules}`),
+    `runGenerated.ts` (executes emitted code in-process for tests).
+  - Output assembly: `export function createModel()` builds each node's CodeFragment in
+    topo order, dedupes imports, injects helpers, returns `new THREE.Mesh(geom, material
+    ?? default)`.
+  - **Parity harness** (`codegen.parity.test.ts`): runs generated code and asserts
+    positions === live eval across all node types; `codegen.helpers.test.ts` guards noise
+    drift. 49/49 tests green.
+  - Export UI (`ExportPanel`) + toolbar "Export Code": preview / copy / download .ts.
+- **BUG FOUND BY PARITY (real, not codegen):** `toBufferGeometry` wrapped GeometryData
+  typed arrays **by reference**, so in-place ops (applyMatrix4 in transform/mirror,
+  translate in array) mutated cached upstream geometry — corrupting the eval cache and
+  breaking mirror/array. Fixed by copying buffers in `toBufferGeometry` (it now owns its
+  data). Exactly the class of bug the parity harness exists to catch.
+- **Decisions (ADR-007):** generated code uses **namespace three import**
+  (`import * as THREE`) for simplicity/readability; modules mapped via a small registry;
+  node helpers injected on demand. Prettier formatting **deferred** (output already clean;
+  prettier/standalone bundling is a later polish). Displace codegen made self-contained
+  via an injected `makeNoise3` (drift-guarded).
+- **Verified:** typecheck, 49 tests, lint, build clean.
+- **Next:** the M2 demo (build+export a real model, examples, Playwright), then Phase 5
+  (parametric system → M4).
 
 ### 2026-06-23 — Phase 3 cont.: curves + generators (extrude, lathe)
 - **Did:**

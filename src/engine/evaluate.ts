@@ -4,6 +4,7 @@ import { mulberry32 } from '@/geometry/rng';
 import type { Edge, Graph, GraphNode, SocketValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import type { ResolvedInputs } from '@/nodes/NodeDef';
+import { topoSort } from '@/graph/topology';
 import { fnv1a } from './hash';
 
 export interface EvalError {
@@ -63,8 +64,11 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
   if (!graph.outputNodeId) return { geometry: null, material: null, errors };
 
   const nodesById = new Map(graph.nodes.map((n) => [n.id, n]));
-  const order = topoSort(graph, errors);
-  if (!order) return { geometry: null, material: null, errors };
+  const order = topoSort(graph);
+  if (!order) {
+    errors.push({ nodeId: '', message: 'Graph contains a cycle' });
+    return { geometry: null, material: null, errors };
+  }
 
   const outputs = new Map<string, Record<string, SocketValue>>();
   const nodeHashes = new Map<string, string>();
@@ -142,35 +146,4 @@ function resolveInputs(
     }
   }
   return inputs;
-}
-
-/** Kahn topological sort. Returns null (and records an error) if a cycle exists. */
-function topoSort(graph: Graph, errors: EvalError[]): string[] | null {
-  const indegree = new Map<string, number>();
-  const adjacency = new Map<string, string[]>();
-  for (const n of graph.nodes) {
-    indegree.set(n.id, 0);
-    adjacency.set(n.id, []);
-  }
-  for (const e of graph.edges) {
-    if (!indegree.has(e.target) || !indegree.has(e.source)) continue;
-    adjacency.get(e.source)!.push(e.target);
-    indegree.set(e.target, (indegree.get(e.target) ?? 0) + 1);
-  }
-  const queue = [...indegree.entries()].filter(([, d]) => d === 0).map(([id]) => id);
-  const order: string[] = [];
-  while (queue.length) {
-    const id = queue.shift()!;
-    order.push(id);
-    for (const next of adjacency.get(id) ?? []) {
-      const d = (indegree.get(next) ?? 0) - 1;
-      indegree.set(next, d);
-      if (d === 0) queue.push(next);
-    }
-  }
-  if (order.length !== graph.nodes.length) {
-    errors.push({ nodeId: '', message: 'Graph contains a cycle' });
-    return null;
-  }
-  return order;
 }

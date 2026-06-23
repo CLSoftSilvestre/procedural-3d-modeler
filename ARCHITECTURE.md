@@ -193,4 +193,11 @@ src/
   engine returns `{ geometry, material }` from Output; the viewport builds the three.js
   material (default if none connected). Sockets whose type is "connectable"
   (`geometry`/`material`) render a handle; scalars are edited in the inspector. (2026-06-23)
+- **ADR-007 — Code generation: namespace three import + dual eval/run parity.** Generated
+  modules use `import * as THREE from 'three'` (readable, simple) with a small module
+  registry mapping specifiers→imports; per-node helpers (e.g. seeded noise) are injected
+  on demand and kept drift-free by a test. Correctness is enforced by a **parity harness**
+  that executes the generated code in-process (`runGenerated`) and asserts its geometry
+  equals the live `evaluate` output. Prettier formatting deferred (fragments are already
+  clean); tree-shakeable named-import target is a future option. (2026-06-23)
 - _Add new ADRs here as decisions are made._

@@ -33,27 +33,29 @@ export const displaceNode: NodeDef = {
   },
 
   codegen(ctx) {
-    // NOTE(phase4): the generator will inject a seeded noise3() helper; this emits the
-    // displacement loop that consumes it.
+    // Uses the injected `makeNoise3` helper; displaces along the existing normals (to
+    // match the live evaluation), then recomputes normals.
     const g = ctx.inputExpr('geometry');
+    const nz = ctx.uniqueVar('noise');
     return {
       statements: [
         `{`,
+        `  const ${nz} = makeNoise3(${ctx.inputExpr('seed')});`,
         `  const pos = ${g}.attributes.position;`,
-        `  const f = ${ctx.inputExpr('frequency')}, s = ${ctx.inputExpr('strength')};`,
-        `  ${g}.computeVertexNormals();`,
         `  const nrm = ${g}.attributes.normal;`,
+        `  const f = ${ctx.inputExpr('frequency')}, s = ${ctx.inputExpr('strength')};`,
         `  for (let i = 0; i < pos.count; i++) {`,
         `    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);`,
-        `    const d = s * noise3(x * f, y * f, z * f); /* seed ${ctx.inputExpr('seed')} */`,
+        `    const d = s * ${nz}(x * f, y * f, z * f);`,
         `    pos.setXYZ(i, x + nrm.getX(i) * d, y + nrm.getY(i) * d, z + nrm.getZ(i) * d);`,
         `  }`,
         `  pos.needsUpdate = true;`,
-        `  ${g}.computeVertexNormals();`,
         `}`,
+        `${g}.computeVertexNormals();`,
       ],
       outputVar: g,
       imports: ['three'],
+      helpers: ['noise'],
     };
   },
 };

@@ -24,8 +24,10 @@ export interface CodeFragment {
   statements: string[];
   /** The variable name that holds this node's result (geometry/value). */
   outputVar: string;
-  /** Imports this fragment needs, e.g. { 'three': ['*'] } handled by the generator. */
+  /** Module specifiers this fragment needs (e.g. 'three'); mapped to imports by the generator. */
   imports?: string[];
+  /** Helper ids this fragment needs (e.g. 'noise'); their source is injected by the generator. */
+  helpers?: string[];
 }
 
 export interface CodegenContext {

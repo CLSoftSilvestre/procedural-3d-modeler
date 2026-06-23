@@ -314,6 +314,73 @@ body,
   color: var(--muted);
 }
 
+/* toolbar primary action */
+.toolbar__primary {
+  background: var(--accent) !important;
+  color: #0c1426 !important;
+  font-weight: 600;
+  border-color: var(--accent) !important;
+}
+
+/* export modal */
+.modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: min(900px, 90vw);
+  height: min(680px, 85vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+.modal__actions {
+  display: flex;
+  gap: 6px;
+}
+.modal__actions button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.modal__actions button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.modal__code {
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #d6e0ff;
+  white-space: pre;
+}
+.modal__error {
+  padding: 16px;
+  color: #ff9b9b;
+}
+
 /* socket handle colors by type */
 .handle--geometry {
   background: #6ea8fe !important;

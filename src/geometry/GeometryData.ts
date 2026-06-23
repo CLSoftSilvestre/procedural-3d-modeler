@@ -32,16 +32,21 @@ export function emptyGeometry(): GeometryData {
   return { positions: new Float32Array(0), metadata: { triCount: 0 } };
 }
 
-/** Convert a GeometryData into a renderable THREE.BufferGeometry. */
+/**
+ * Convert a GeometryData into a renderable THREE.BufferGeometry.
+ * Buffers are COPIED so the returned geometry owns its data — in-place three.js ops
+ * (applyMatrix4, translate, …) must never mutate the source GeometryData, which may be
+ * a cached upstream result shared by other nodes.
+ */
 export function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const geom = new THREE.BufferGeometry();
-  geom.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
-  if (data.indices) geom.setIndex(new THREE.BufferAttribute(data.indices, 1));
-  if (data.normals) geom.setAttribute('normal', new THREE.BufferAttribute(data.normals, 3));
-  if (data.uvs) geom.setAttribute('uv', new THREE.BufferAttribute(data.uvs, 2));
+  geom.setAttribute('position', new THREE.BufferAttribute(data.positions.slice(), 3));
+  if (data.indices) geom.setIndex(new THREE.BufferAttribute(data.indices.slice(), 1));
+  if (data.normals) geom.setAttribute('normal', new THREE.BufferAttribute(data.normals.slice(), 3));
+  if (data.uvs) geom.setAttribute('uv', new THREE.BufferAttribute(data.uvs.slice(), 2));
   if (data.attributes) {
     for (const [name, attr] of Object.entries(data.attributes)) {
-      geom.setAttribute(name, new THREE.BufferAttribute(attr.array, attr.itemSize));
+      geom.setAttribute(name, new THREE.BufferAttribute(attr.array.slice(), attr.itemSize));
     }
   }
   if (data.groups) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useStore } from '@/state/store';
 import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
@@ -7,6 +7,7 @@ import { downloadGraph, deserializeGraph } from '@/graph/serialize';
 import { Viewport } from '@/viewport/Viewport';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
+import { ExportPanel } from '@/ui/ExportPanel';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -34,7 +35,7 @@ function NodePalette() {
   );
 }
 
-function Toolbar() {
+function Toolbar({ onExport }: { onExport: () => void }) {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.past.length > 0);
@@ -80,6 +81,10 @@ function Toolbar() {
         style={{ display: 'none' }}
         onChange={onFile}
       />
+      <span className="toolbar__sep" />
+      <button className="toolbar__primary" onClick={onExport}>
+        ⤓ Export Code
+      </button>
     </div>
   );
 }
@@ -89,6 +94,7 @@ export function App() {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
+  const [showExport, setShowExport] = useState(false);
 
   const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
 
@@ -109,8 +115,8 @@ export function App() {
     <div className="app">
       <header className="app__header">
         <span className="app__brand">Procedural 3D Modeler</span>
-        <span className="app__sub">three.js generator · M1</span>
-        <Toolbar />
+        <span className="app__sub">three.js generator</span>
+        <Toolbar onExport={() => setShowExport(true)} />
         <span className="app__stats">
           {evaluating && <span className="app__busy">evaluating…</span>}
           {geometry ? `${geometry.metadata.triCount.toLocaleString()} tris` : 'no output'}
@@ -146,6 +152,8 @@ export function App() {
           <Inspector />
         </aside>
       </div>
+
+      {showExport && <ExportPanel onClose={() => setShowExport(false)} />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { registerNode } from './registry';
-import { boxNode } from './primitives/box';
+import { primitiveNodes } from './primitives/primitives';
+import { transformNode } from './modifiers/transform';
 import { outputNode } from './output/output';
 
 let registered = false;
@@ -8,7 +9,8 @@ let registered = false;
 export function registerBuiltinNodes(): void {
   if (registered) return;
   registered = true;
-  registerNode(boxNode);
+  for (const def of primitiveNodes) registerNode(def);
+  registerNode(transformNode);
   registerNode(outputNode);
 }
 

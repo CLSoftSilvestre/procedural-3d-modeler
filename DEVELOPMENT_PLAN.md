@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 2 complete — **M1 reached** (worker eval + caching, undo/redo, save/load, validation).
+- **Status:** Phase 3 in progress — primitives + first modifier landed; M1 stable in-browser.
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — not started.
+- **Current phase:** Phase 3 (Modeling toolkit) — ~30% (primitives + transform done).
 
 ---
 
@@ -69,9 +69,14 @@
   undo/redo works, graph round-trips through JSON. Verified by 11 passing tests +
   typecheck/lint/build (worker code-splits to its own chunk) + dev-server boot.
 
-## Phase 3 — Modeling toolkit (→ M2)  `[ ]`
-- [ ] Primitives: sphere, cylinder, cone, torus, plane, circle
-- [ ] Transform node (translate/rotate/scale)
+## Phase 3 — Modeling toolkit (→ M2)  `[~]`
+- [x] Node-authoring ergonomics: shared input helpers (`num/bool/str/vec3/geom`,
+      `codeArgs`); primitive factory (one impl drives evaluate + codegen in lock-step).
+- [x] **Validated geometry-in → geometry-out modifier pattern** end-to-end through the
+      engine via the Transform node (the de-risking step for all modifiers/booleans).
+- [x] Primitives: box (now factory-based), sphere, cylinder, cone, torus, plane
+      _(circle TODO)_
+- [x] Transform node (translate / rotate° / scale, per-axis scalar inputs)
 - [ ] Array (linear/radial/grid), mirror
 - [ ] Curves + extrude + lathe/revolve
 - [ ] Booleans via three-bvh-csg (union/subtract/intersect)
@@ -144,16 +149,15 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. Refactor node-authoring ergonomics first: typed input helpers (`numIn`, `vec3In`),
-   and support **multi-input geometry sockets** + nodes that take a geometry input
-   (needed for modifiers/booleans). Engine currently assumes single-output; confirm
-   modifier nodes (geometry-in → geometry-out) work end-to-end.
-2. Primitives: sphere, cylinder, cone, torus, plane, circle (+ codegen each).
-3. Transform node (translate/rotate/scale) — first geometry-modifying node.
-4. Array (linear/radial/grid) and mirror.
-5. Booleans via three-bvh-csg (union/subtract/intersect) behind a wrapper + fixtures.
-6. Deformers: displace (seeded noise), twist/bend/taper; subdivide/smooth.
-7. Material node + assignment; normals/UV utilities.
+1. Array (linear/radial/grid) + mirror — first nodes that **merge** geometry (need a
+   `mergeGeometries` op; informs the multi-input-socket question for booleans).
+2. Booleans via three-bvh-csg (union/subtract/intersect) behind a wrapper + fixtures.
+   This needs **two geometry input sockets** on a node — confirm engine/UI handle it.
+3. Deformers: displace (seeded noise — uses EvalContext.random), twist/bend/taper.
+4. Subdivide / smooth; circle primitive; normals/UV utilities; vertex color.
+5. Material node (standard/physical) + assignment + groups.
+6. Playwright smoke test (add box+output, connect, assert canvas) once the node set is
+   richer — unit tests already cover the add-node/undo regression class.
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -167,6 +171,28 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 3 start: primitives + first modifier
+- **Did:** User confirmed M1 works in-browser. Then began the modeling toolkit:
+  - Node-authoring helpers (`nodes/helpers.ts`): `num/bool/str/vec3/geom`, `codeArgs`.
+  - Primitive **factory** (`primitives/factory.ts`): one config drives both `evaluate`
+    and `codegen`, keeping them in lock-step by construction. Migrated box to it and
+    added sphere, cylinder, cone, torus, plane (`primitives/primitives.ts`); deleted the
+    old hand-written `box.ts`.
+  - Geometry ops (`geometry/ops.ts`): `transformGeometry(matrix)` + `composeMatrix`;
+    `emptyGeometry()` added to `GeometryData`.
+  - **Transform** modifier (`modifiers/transform.ts`): first geometry-in→geometry-out
+    node — proves the engine chains modifiers correctly (the key de-risking step).
+  - Tests (`nodes.test.ts`): all 6 primitives produce geometry, sphere radius drives
+    bbox, transform translate/scale through a 3-node chain, empty-on-disconnect,
+    registry count. 21/21 total green.
+- **Verified:** typecheck, 21 tests, lint, build all clean.
+- **Decisions/notes:** Transform uses **per-axis scalar inputs** (tx/ty/tz, rx/ry/rz°,
+  sx/sy/sz) so it works with today's inspector (vector UI still deferred). Engine's
+  single-output convention holds fine for modifiers. `codegen` written for every node
+  but not yet executed — Phase 4 builds the generator + parity tests.
+- **Next:** Array/mirror (needs `mergeGeometries`), then booleans (needs 2 geometry input
+  sockets — verify engine/UI), then deformers.
 
 ### 2026-06-23 — Bugfix: nodes could not be added (DataCloneError)
 - **Reported:** console errors + unable to add Box/Output nodes.

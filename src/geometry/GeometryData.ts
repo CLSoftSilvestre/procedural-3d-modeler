@@ -27,6 +27,11 @@ export interface GeometryMetadata {
   boundingBox?: { min: [number, number, number]; max: [number, number, number] };
 }
 
+/** An empty geometry (no triangles). Used when a modifier has no input. */
+export function emptyGeometry(): GeometryData {
+  return { positions: new Float32Array(0), metadata: { triCount: 0 } };
+}
+
 /** Convert a GeometryData into a renderable THREE.BufferGeometry. */
 export function toBufferGeometry(data: GeometryData): THREE.BufferGeometry {
   const geom = new THREE.BufferGeometry();

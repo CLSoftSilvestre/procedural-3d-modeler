@@ -7,6 +7,10 @@ import { displaceNode } from './deformers/displace';
 import { twistNode } from './deformers/twist';
 import { taperNode } from './deformers/taper';
 import { booleanNode } from './booleans/boolean';
+import { polygonNode } from './curves/polygon';
+import { starNode } from './curves/star';
+import { extrudeNode } from './generators/extrude';
+import { latheNode } from './generators/lathe';
 import { materialNode } from './material/material';
 import { outputNode } from './output/output';
 
@@ -24,6 +28,10 @@ export function registerBuiltinNodes(): void {
   registerNode(twistNode);
   registerNode(taperNode);
   registerNode(booleanNode);
+  registerNode(polygonNode);
+  registerNode(starNode);
+  registerNode(extrudeNode);
+  registerNode(latheNode);
   registerNode(materialNode);
   registerNode(outputNode);
 }

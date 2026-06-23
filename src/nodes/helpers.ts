@@ -1,4 +1,5 @@
 import type { GeometryData } from '@/geometry/GeometryData';
+import { isShapeData, type ShapeData } from '@/geometry/ShapeData';
 import { isMaterialSpec, type MaterialSpec } from '@/material/MaterialData';
 import type { ResolvedInputs } from './NodeDef';
 import type { CodegenContext } from './NodeDef';
@@ -39,6 +40,11 @@ export function geom(inputs: ResolvedInputs, key = 'geometry'): GeometryData | u
 export function mat(inputs: ResolvedInputs, key = 'material'): MaterialSpec | undefined {
   const v = inputs[key];
   return isMaterialSpec(v) ? v : undefined;
+}
+
+export function shape(inputs: ResolvedInputs, key = 'shape'): ShapeData | undefined {
+  const v = inputs[key];
+  return isShapeData(v) ? v : undefined;
 }
 
 /** Join several input-socket expressions for a codegen call, in order. */

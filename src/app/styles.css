@@ -321,6 +321,9 @@ body,
 .handle--material {
   background: #f2c14e !important;
 }
+.handle--shape {
+  background: #7ddc8a !important;
+}
 .inspector__field input[type='color'] {
   width: 48px;
   height: 26px;

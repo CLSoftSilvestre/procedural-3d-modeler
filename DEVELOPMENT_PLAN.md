@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 3 in progress — primitives, modifiers, deformers, booleans, materials.
+- **Status:** Phase 3 ~90% — primitives, modifiers, deformers, booleans, materials, curves+generators.
 - **Last updated:** 2026-06-23
-- **Current phase:** Phase 3 (Modeling toolkit) — ~80% (materials in; curves/subdivide left).
+- **Current phase:** Phase 3 (Modeling toolkit) — generators in; M2 review next.
 
 ---
 
@@ -79,7 +79,10 @@
 - [x] Transform node (translate / rotate° / scale, per-axis scalar inputs)
 - [x] Array (linear + radial; grid TODO) and Mirror — added `mergeGeometriesData` +
       `mirrorGeometry` ops; added `select` inspector control.
-- [ ] Curves + extrude + lathe/revolve
+- [x] Curves + extrude + lathe/revolve — new **`shape` socket type** + `ShapeData`
+      (2D profile). Profile nodes: **Polygon**, **Star**. Generators: **Extrude**
+      (THREE.ExtrudeGeometry + bevel), **Lathe** (THREE.LatheGeometry). Profile codegen
+      emits `Vector2[]`; generators consume it. _(Freehand curve editing = future.)_
 - [x] Booleans via three-bvh-csg (union/subtract/intersect) — `geometry/csg.ts` wrapper;
       **validated the two-geometry-input-socket pattern** through engine + UI.
 - [x] Displace (seeded Perlin noise), Twist, Taper deformers — added `deformGeometry`
@@ -157,14 +160,17 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. Curves + extrude + lathe/revolve (profile-based generators) — biggest remaining
-   modeling capability gap.
-2. Circle primitive; Subdivide / smooth modifiers.
-3. Multi-material support: Boolean/merge produce groups; let Output take multiple
-   materials (array) — builds on ADR-006.
-4. Bend deformer; grid mode for Array; vector3 inspector control; vertex color.
-5. Then **M2 review**: build a non-trivial textured demo model end-to-end; Playwright
-   smoke test. After M2 → Phase 4 (the code generator + parity tests).
+1. **M2 review** (exit Phase 3): build a non-trivial textured demo model end-to-end in
+   the browser (e.g. extruded star + bevel + material, or a lathed vase); confirm
+   save/load round-trip; add a Playwright smoke test. Bundle a couple of example graphs.
+2. **Phase 4 — the code generator** (the product's crown jewel): build the generator that
+   walks the topo-sorted graph, stitches each node's `CodeFragment`, dedupes imports,
+   formats with Prettier, and wraps in the vanilla-three.js target. Then the **parity
+   test harness** (eval(graph) === eval(generated code)). This will exercise/validate all
+   the `codegen` written so far and fix the provisional ones (deformers, mirror).
+3. Backfill remaining Phase-3 niceties opportunistically: circle primitive,
+   subdivide/smooth, bend, grid Array, vector3 inspector control, vertex color,
+   multi-material output.
 
 ## Deferred / tech-debt (carried forward)
 - **Transferable GeometryData** across the worker boundary (currently structured-cloned).
@@ -178,6 +184,28 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-23 — Phase 3 cont.: curves + generators (extrude, lathe)
+- **Did:**
+  - New **`shape` socket type** + `ShapeData` (serializable 2D profile) in
+    `geometry/ShapeData.ts` with `polygonPoints`/`starPoints`/`toThreeShape`/
+    `toVector2Array`. Added to SocketType/SocketValue/`isConnectableType`/`LiteralValue`;
+    `shape()` helper.
+  - Profile nodes: **Polygon** (n-gon), **Star** (inner/outer radius) → output `shape`.
+  - Generators: **Extrude** (THREE.ExtrudeGeometry, depth/steps/bevel, centered on Z),
+    **Lathe** (THREE.LatheGeometry, segments/sweep°).
+  - Codegen convention: profile nodes emit a `Vector2[]`; Extrude wraps it in
+    `new THREE.Shape(...)`, Lathe passes it directly — keeps the two consistent.
+  - UI: shape handles render green; no new inspector control needed.
+  - Tests (`generators.test.ts`): polygon/star→extrude (incl. Z-depth check),
+    polygon→lathe, and shape↦geometry type-mismatch rejection. 38/38 total green.
+- **Verified:** typecheck, 38 tests, lint, build clean.
+- **Decisions/notes:** Profiles are **parametric only** for now (Polygon/Star); freehand
+  2D curve editing is a future feature. Lathe treats the profile as a silhouette
+  (x=radius); polygons revolve fine though one-sided custom profiles will be ideal once a
+  curve editor exists. This effectively completes the M2 toolkit — next is an M2 demo +
+  Playwright, then Phase 4 (code generator).
+- **Next:** M2 review/demo, then Phase 4 code generator + parity harness.
 
 ### 2026-06-23 — Phase 3 cont.: Material node (new socket type)
 - **Did:** Implemented materials as planned, with a refined design (ADR-006):

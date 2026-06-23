@@ -1,4 +1,5 @@
 import type { GeometryData } from '@/geometry/GeometryData';
+import type { ShapeData } from '@/geometry/ShapeData';
 import type { MaterialSpec } from '@/material/MaterialData';
 
 /**
@@ -11,6 +12,7 @@ import type { MaterialSpec } from '@/material/MaterialData';
 export type SocketType =
   | 'geometry'
   | 'material'
+  | 'shape'
   | 'number'
   | 'vector3'
   | 'boolean'
@@ -20,6 +22,7 @@ export type SocketType =
 export type SocketValue =
   | GeometryData
   | MaterialSpec
+  | ShapeData
   | number
   | [number, number, number]
   | boolean
@@ -27,11 +30,11 @@ export type SocketValue =
 
 /** Socket types that carry complex objects over edges (rendered with a connection handle). */
 export function isConnectableType(type: SocketType): boolean {
-  return type === 'geometry' || type === 'material';
+  return type === 'geometry' || type === 'material' || type === 'shape';
 }
 
 /** Plain literal values that can be stored on a node and edited in the inspector. */
-export type LiteralValue = Exclude<SocketValue, GeometryData | MaterialSpec>;
+export type LiteralValue = Exclude<SocketValue, GeometryData | MaterialSpec | ShapeData>;
 
 export interface SocketSpec {
   id: string;

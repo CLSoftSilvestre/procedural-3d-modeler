@@ -200,9 +200,26 @@ body,
 }
 
 /* inspector */
+.inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
 .inspector__title {
-  margin: 0 0 12px;
+  margin: 0;
   font-size: 14px;
+}
+.inspector__delete {
+  background: rgba(120, 30, 30, 0.6);
+  color: #ffd9d9;
+  border: 1px solid #6b2a2a;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.inspector__delete:hover {
+  background: rgba(160, 40, 40, 0.8);
 }
 .inspector__field {
   display: block;

@@ -174,6 +174,16 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-23 — Fix: node deletion didn't work
+- **Reported:** user couldn't delete a node.
+- **Cause:** `rfNodes`/`rfEdges` never set `selected`, so React Flow's keyboard delete
+  (which acts on `selected` elements) had nothing to remove.
+- **Fix:** reflect `selectedNodeId` into `rfNodes[].selected`; added `onNodesDelete`,
+  `deleteKeyCode={['Backspace','Delete']}`, and a visible **Delete** button in the
+  Inspector for discoverability. typecheck/lint/27 tests green.
+- **To delete:** click a node then press Delete/Backspace, or use the Inspector's Delete
+  button. (Undo restores it.)
+
 ### 2026-06-23 — Phase 3 cont.: array, mirror, booleans (CSG)
 - **Did:**
   - Geometry ops: `mergeGeometriesData` (BufferGeometryUtils) + `mirrorGeometry`

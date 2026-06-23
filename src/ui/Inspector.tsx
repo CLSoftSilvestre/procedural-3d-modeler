@@ -5,6 +5,7 @@ export function Inspector() {
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const node = useStore((s) => s.graph.nodes.find((n) => n.id === s.selectedNodeId));
   const setNodeValue = useStore((s) => s.setNodeValue);
+  const removeNode = useStore((s) => s.removeNode);
 
   if (!node || !selectedNodeId) {
     return <div className="panel__empty">Select a node to edit its properties.</div>;
@@ -15,7 +16,16 @@ export function Inspector() {
 
   return (
     <div className="inspector">
-      <h3 className="inspector__title">{def.label}</h3>
+      <div className="inspector__header">
+        <h3 className="inspector__title">{def.label}</h3>
+        <button
+          className="inspector__delete"
+          title="Delete node (or select it and press Delete/Backspace)"
+          onClick={() => removeNode(selectedNodeId)}
+        >
+          Delete
+        </button>
+      </div>
       {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
       {editable.map((socket) => {
         const value = node.values[socket.id];

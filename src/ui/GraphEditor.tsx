@@ -56,6 +56,7 @@ function GraphNodeView({ id, data }: NodeProps) {
 
 export function GraphEditor() {
   const graph = useStore((s) => s.graph);
+  const selectedNodeId = useStore((s) => s.selectedNodeId);
   const moveNode = useStore((s) => s.moveNode);
   const addEdge = useStore((s) => s.addEdge);
   const removeNode = useStore((s) => s.removeNode);
@@ -70,9 +71,11 @@ export function GraphEditor() {
         id: n.id,
         type: 'proc',
         position: n.position,
+        // Reflect selection so React Flow knows what to delete on Backspace/Delete.
+        selected: n.id === selectedNodeId,
         data: { type: n.type },
       })),
-    [graph.nodes],
+    [graph.nodes, selectedNodeId],
   );
 
   const rfEdges: RFEdge[] = useMemo(
@@ -118,8 +121,10 @@ export function GraphEditor() {
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       onConnect={onConnect}
+      onNodesDelete={(nodes) => nodes.forEach((n) => removeNode(n.id))}
       onEdgesDelete={(edges) => edges.forEach((e) => removeEdge(e.id))}
       onPaneClick={() => select(null)}
+      deleteKeyCode={['Backspace', 'Delete']}
       fitView
       proOptions={{ hideAttribution: true }}
     >

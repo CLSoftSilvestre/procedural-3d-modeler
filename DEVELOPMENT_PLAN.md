@@ -168,6 +168,22 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-23 — Bugfix: nodes could not be added (DataCloneError)
+- **Reported:** console errors + unable to add Box/Output nodes.
+- **Root cause:** `pushHistory`/`undo`/`redo` ran `structuredClone(s.graph)`, but inside
+  the Immer middleware producer `s.graph` is a **draft Proxy** — not cloneable → a
+  `DataCloneError` threw on every mutation, so `addNode` always failed.
+- **Fix:** snapshot via immer `current(s.graph)` before `structuredClone` (new `snapshot()`
+  helper in the store). Plus hardening done in the same pass: StrictMode-safe worker
+  lifecycle in `useEvaluatedGeometry`, app-wide `ErrorBoundary` (no more white-screens),
+  HMR-safe `registerNode` (overwrite vs throw), guarded WebGL init in `Viewport`, inline
+  favicon (404).
+- **Tests:** +4 store tests (add node regression, output wiring, undo/redo, snapshot
+  independence). 15/15 green; typecheck/lint/build clean. Commit `ca3bf0e`.
+- **Lesson (for plan):** with Immer middleware, never clone `s.*` drafts directly — use
+  `current()` first. Watch for this in future store work.
+- **Next:** user to confirm end-to-end in browser, then resume Phase 3.
+
 ### 2026-06-23 — Phase 2 core engine loop → M1 reached
 - **Did:**
   - **Worker eval:** `EvalCache` (content-hash cache, FNV-1a hashing in `engine/hash.ts`,

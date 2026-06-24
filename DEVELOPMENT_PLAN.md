@@ -230,6 +230,17 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Fix: ambient slider had no effect (added IBL environment)
+- **Reported:** ambient slider made no visible difference.
+- **Root cause:** `AmbientLight` only feeds the **diffuse** term, so metallic materials
+  (steel/gold/chrome presets) barely responded — and the scene had **no environment map**,
+  so metals/glass had nothing to reflect.
+- **Fix:** added image-based lighting — `RoomEnvironment` baked via `PMREMGenerator` set as
+  `scene.environment`, plus `ACESFilmicToneMapping`. The **ambient slider now drives
+  `scene.environmentIntensity`** (with a small residual ambient light), so it visibly
+  affects every material and metals/glass are now properly lit & reflective.
+- **Verified:** typecheck, 74 tests, lint, build, dev-boot clean.
+
 ### 2026-06-24 — Viewport lighting control
 - **Did:** `viewport/lighting.ts` (`Lighting` type, 5 presets: Studio/Soft/Dramatic/
   Bright/White Studio). Viewport now applies ambient/key (+ derived fill) intensities and

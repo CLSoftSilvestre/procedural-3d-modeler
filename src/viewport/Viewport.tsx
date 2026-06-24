@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { GeometryData } from '@/geometry/GeometryData';
 import { toBufferGeometry } from '@/geometry/GeometryData';
 import { defaultMaterialSpec, toThreeMaterial, type MaterialSpec } from '@/material/MaterialData';
@@ -68,7 +69,16 @@ export function Viewport({
     }
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
     mount.appendChild(renderer.domElement);
+
+    // Image-based lighting so PBR materials (esp. metals/glass) are lit & reflective.
+    // The ambient slider scales scene.environmentIntensity, so it affects every material.
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = envTexture;
+    pmrem.dispose();
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -110,6 +120,7 @@ export function Viewport({
       cancelAnimationFrame(raf);
       observer.disconnect();
       controls.dispose();
+      envTexture.dispose();
       renderer.dispose();
       mount.removeChild(renderer.domElement);
       sceneRef.current = null;
@@ -145,11 +156,13 @@ export function Viewport({
 
   // Apply lighting + background without rebuilding the scene.
   useEffect(() => {
-    if (ambientRef.current) ambientRef.current.intensity = lighting.ambient;
+    const scene = sceneRef.current;
+    if (scene) scene.environmentIntensity = lighting.ambient; // ambient = IBL strength
+    if (ambientRef.current) ambientRef.current.intensity = lighting.ambient * 0.25;
     if (keyRef.current) keyRef.current.intensity = lighting.key;
     if (fillRef.current) fillRef.current.intensity = lighting.key * 0.4;
-    if (sceneRef.current?.background instanceof THREE.Color) {
-      sceneRef.current.background.set(lighting.background);
+    if (scene?.background instanceof THREE.Color) {
+      scene.background.set(lighting.background);
     }
   }, [lighting]);
 

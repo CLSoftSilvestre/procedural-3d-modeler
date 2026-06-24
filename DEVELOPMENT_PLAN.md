@@ -7,7 +7,7 @@
 
 - **Status:** Phases 0–6 done + procedural animation. Phase 7 (launch prep) in progress.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 7 — launch prep (started: example library expanded).
+- **Current phase:** Phase 7 — launch prep (done: examples, onboarding tour, PWA/offline).
 
 ---
 
@@ -181,7 +181,10 @@
       the originals.) TODO: thumbnails in the menu, importable community templates.
 - [ ] Versioned graph format + migration strategy
 - [ ] Telemetry (opt-in), error reporting
-- [ ] Packaging/deploy (hosting, PWA/offline), billing/licensing hooks
+- [~] Packaging/deploy — **PWA/offline done** (vite-plugin-pwa: generated SW precaches the
+      app + eval worker for full offline use; installable manifest + icons; "new version →
+      Reload" prompt; "ready offline" notice). TODO: pick a static host + CI deploy;
+      billing/licensing hooks (needs product decision).
 - [ ] Landing page + marketing assets
 - **Exit criteria (M6):** publicly usable, monetizable product.
 
@@ -244,6 +247,24 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 7: PWA / offline + installable
+- Added `vite-plugin-pwa` (generateSW). The built service worker precaches the app shell, main
+  bundle and eval worker (16 entries, ~1.35 MiB) for **full offline use**; bumped
+  `maximumFileSizeToCacheInBytes` to 4 MiB to cover the large bundles. Plugin `disable`d under
+  VITEST so unit tests are unaffected.
+- Installable: `manifest.webmanifest` (name/short_name/description/theme+bg `#11141b`,
+  standalone, categories, 192/512/maskable icons) + head meta (theme-color, apple-touch,
+  apple-mobile-web-app-*). Favicon switched to a vector `favicon.svg`.
+- **Dependency-free icon generation:** `scripts/gen-icons.mjs` (`npm run icons`) draws the brand
+  isometric cube and encodes real PNGs via Node `zlib` (custom CRC/PNG chunks + scanline polygon
+  fill) — no image libs. Emits 192/512/maskable-512/apple-180 + favicon.svg into `public/`.
+- Update UX: `src/pwa.ts` registers via `virtual:pwa-register` (registerType 'prompt') and shows a
+  dismissible "new version → Reload" toast (no silent reload → no lost work; graph autosaves
+  anyway) plus a transient "ready to work offline" notice. Added `vite-plugin-pwa/client` types.
+- 97/97 tests; typecheck/lint/build clean; verified `dist/` emits sw.js, workbox, manifest, icons.
+  **Next:** deploy/host + CI; then graph versioning/migration, or the product-decision items
+  (telemetry, billing, landing page).
 
 ### 2026-06-24 — Phase 7: onboarding flow + interactive tutorial
 - **WelcomeModal** on first run (offers the tour or skip); seen-flag persisted as

@@ -5,9 +5,11 @@ import { App } from '@/app/App';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { useStore } from '@/state/store';
 import { loadPersistedGraph, setupAutosave } from '@/state/persistence';
+import { registerPWA } from '@/pwa';
 import '@/app/styles.css';
 
 registerBuiltinNodes();
+registerPWA();
 
 // Restore the last autosaved graph (if any), then keep persisting on change.
 const persisted = loadPersistedGraph();

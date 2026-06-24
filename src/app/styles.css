@@ -1560,3 +1560,46 @@ body,
   border-color: var(--accent);
   font-weight: 600;
 }
+
+/* PWA "new version" toast */
+.pwa-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+  padding: 11px 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+}
+.pwa-toast__msg {
+  color: var(--text);
+}
+.pwa-toast__reload {
+  background: var(--accent);
+  color: #0c1426;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pwa-toast__reload:hover {
+  filter: brightness(1.06);
+}
+.pwa-toast__dismiss {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+}
+.pwa-toast__dismiss:hover {
+  color: var(--text);
+}

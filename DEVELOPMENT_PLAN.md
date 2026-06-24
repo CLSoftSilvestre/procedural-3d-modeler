@@ -253,6 +253,13 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Tooltip thumbnails for the new nodes
+- Added dedicated `NodeThumbnail` line-art for the new nodes (were hitting the generic fallback):
+  capsule (pill), circle (disc), ring (annulus, evenodd hole), torus knot (interlocked loops),
+  tetra/octa/dodeca/icosahedron (faceted wireframes), and Bend (a bar curving into an arc).
+  Renamed the per-type map `PRIMITIVES` → `BY_TYPE` (now also holds the bend deformer).
+- All checks clean.
+
 ### 2026-06-24 — More geometry: 8 primitives + Bend deformer
 - New primitives via the existing factory (all inherit built-in transform): **Capsule, Circle,
   Ring, Torus Knot, Tetrahedron, Octahedron, Dodecahedron, Icosahedron** (6 → **14** primitives).

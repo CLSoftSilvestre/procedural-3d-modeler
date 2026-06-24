@@ -1603,3 +1603,33 @@ body,
 .pwa-toast__dismiss:hover {
   color: var(--text);
 }
+
+/* edge delete button */
+.edge-delete {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease, background 0.1s ease;
+}
+.edge-delete.is-on {
+  opacity: 1;
+  pointer-events: all;
+}
+.edge-delete:hover {
+  background: var(--danger, #ff5370);
+  border-color: var(--danger, #ff5370);
+  color: #fff;
+}

@@ -24,7 +24,9 @@
       "Bash(node scripts/gen-icons.mjs)",
       "Bash(node -e ' *)",
       "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>console.log\\(JSON.stringify\\(JSON.parse\\(s\\),null,2\\)\\)\\)\")",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(DEPLOY_BASE=/procedural-3d-modeler/ npm run build)",
+      "Bash(node -e \"const m=require\\('./dist/manifest.webmanifest'\\);console.log\\('scope',m.scope,'start',m.start_url,'id',m.id,'icon0',m.icons[0].src\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

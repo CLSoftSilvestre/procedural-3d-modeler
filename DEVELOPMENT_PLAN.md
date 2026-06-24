@@ -187,8 +187,9 @@
 - [ ] Telemetry (opt-in), error reporting
 - [~] Packaging/deploy — **PWA/offline done** (vite-plugin-pwa: generated SW precaches the
       app + eval worker for full offline use; installable manifest + icons; "new version →
-      Reload" prompt; "ready offline" notice). TODO: pick a static host + CI deploy;
-      billing/licensing hooks (needs product decision).
+      Reload" prompt; "ready offline" notice). **Deploy/CI:** GitHub Pages workflow added
+      (`.github/workflows/deploy.yml`: typecheck+lint+test+build, env-driven base). Pending:
+      enable Pages in repo settings (one-time); billing/licensing hooks (needs product decision).
 - [ ] Landing page + marketing assets
 - **Exit criteria (M6):** publicly usable, monetizable product.
 
@@ -251,6 +252,19 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Edge deletion + GitHub Pages deploy/CI
+- **Delete connections.** New `DeletableEdge` (custom React Flow edge) shows a “×” button at
+  the edge midpoint on hover/selection (wide invisible hit-path for easy hovering); click removes
+  the edge. Also added `onEdgesChange` so Backspace/Delete removes a selected edge (replaces the
+  old `onEdgesDelete`). Fixes: previously a mis-wired link could only be cleared by deleting a node.
+- **GitHub Pages.** Vite `base` is now env-driven (`DEPLOY_BASE`, default `/`); PWA manifest
+  `scope`/`start_url`/`id` follow it so the app works under `/<repo>/`. Added
+  `.github/workflows/deploy.yml` (typecheck → lint → test → build with
+  `DEPLOY_BASE=/${{ repo name }}/` → upload-pages-artifact → deploy-pages) and `public/.nojekyll`.
+  Verified a subpath build rewrites all asset/manifest URLs correctly. User must enable Pages
+  (Settings → Pages → Source: GitHub Actions) once.
+- All checks clean (105 tests).
 
 ### 2026-06-24 — Phase 7: versioned graph format + migration
 - New `src/graph/migrate.ts`: an ordered, pure migration chain. `migrateGraph(raw, migrations?,

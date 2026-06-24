@@ -4,7 +4,12 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
+// GitHub Pages serves a project site under /<repo>/. The deploy workflow sets DEPLOY_BASE
+// to that subpath; local dev/build default to '/'.
+const base = process.env.DEPLOY_BASE || '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -23,9 +28,9 @@ export default defineConfig({
         name: 'Procedural 3D Modeler',
         short_name: '3D Modeler',
         description: 'Node-based procedural geometry that exports production-ready three.js code.',
-        id: '/',
-        start_url: '/',
-        scope: '/',
+        id: base,
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'any',
         background_color: '#11141b',

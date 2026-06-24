@@ -1,13 +1,18 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   Handle,
   Position,
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
   useReactFlow,
   type Connection,
   type Edge as RFEdge,
+  type EdgeProps,
+  type EdgeChange,
   type Node as RFNode,
   type NodeProps,
   type NodeChange,
@@ -68,6 +73,67 @@ function GraphNodeView({ id, data }: NodeProps) {
   );
 }
 
+/** Edge with a hover/select-revealed “×” button to remove the connection. */
+function DeletableEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+  selected,
+}: EdgeProps) {
+  const removeEdge = useStore((s) => s.removeEdge);
+  const [hover, setHover] = useState(false);
+  const [path, labelX, labelY] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+  const active = hover || selected;
+  return (
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={markerEnd}
+        style={{ ...style, stroke: active ? 'var(--accent)' : undefined, strokeWidth: active ? 2.5 : 1.5 }}
+      />
+      {/* Wide invisible hit area so the edge is easy to hover. */}
+      <path
+        d={path}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={20}
+        style={{ pointerEvents: 'stroke', cursor: 'pointer' }}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      />
+      <EdgeLabelRenderer>
+        <button
+          className={`edge-delete${active ? ' is-on' : ''}`}
+          style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          onClick={(e) => {
+            e.stopPropagation();
+            removeEdge(id);
+          }}
+          title="Remove connection"
+        >
+          ×
+        </button>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
 export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const graph = useStore((s) => s.graph);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
@@ -80,6 +146,7 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const { screenToFlowPosition } = useReactFlow();
 
   const nodeTypes = useMemo(() => ({ proc: GraphNodeView }), []);
+  const edgeTypes = useMemo(() => ({ deletable: DeletableEdge }), []);
 
   const rfNodes: RFNode[] = useMemo(
     () =>
@@ -98,6 +165,7 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
     () =>
       graph.edges.map((e) => ({
         id: e.id,
+        type: 'deletable',
         source: e.source,
         sourceHandle: e.sourceSocket,
         target: e.target,
@@ -115,6 +183,14 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       }
     },
     [moveNode, removeNode, select],
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      // Remove selected edges deleted via Backspace/Delete (selection is RF-internal).
+      for (const c of changes) if (c.type === 'remove') removeEdge(c.id);
+    },
+    [removeEdge],
   );
 
   const onConnect = useCallback(
@@ -154,10 +230,11 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       nodes={rfNodes}
       edges={rfEdges}
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
       onConnect={onConnect}
       onNodesDelete={(nodes) => nodes.forEach((n) => removeNode(n.id))}
-      onEdgesDelete={(edges) => edges.forEach((e) => removeEdge(e.id))}
       onPaneClick={() => select(null)}
       onDragOver={onDragOver}
       onDrop={onDrop}

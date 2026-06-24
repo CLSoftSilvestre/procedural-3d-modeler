@@ -80,6 +80,28 @@ export const EXAMPLES: Example[] = [
     ),
   },
   {
+    id: 'pulsing-asteroid',
+    name: 'Pulsing Asteroid (animated)',
+    description: 'A noise-displaced sphere whose displacement pulses over time. Press Play.',
+    graph: build(
+      [
+        { id: 's', type: 'primitive.sphere', values: { radius: 1, widthSegments: 48, heightSegments: 32 }, pos: [40, 40] },
+        { id: 't', type: 'value.time', values: { speed: 1.5 }, pos: [40, 240] },
+        { id: 'x', type: 'value.expression', values: { formula: '0.22 + 0.16 * Math.sin(a)' }, pos: [240, 240] },
+        { id: 'd', type: 'deformer.displace', values: { frequency: 1.6, seed: 7 }, pos: [440, 40] },
+        { id: 'mat', type: 'material.standard', values: { color: '#8a7f73', roughness: 0.95, metalness: 0 }, pos: [440, 300] },
+        { id: 'out', type: 'output.mesh', pos: [660, 40] },
+      ],
+      [
+        ['t', 'value', 'x', 'a'],
+        ['s', 'geometry', 'd', 'geometry'],
+        ['x', 'value', 'd', 'strength'],
+        ['d', 'geometry', 'out', 'geometry'],
+        ['mat', 'material', 'out', 'material'],
+      ],
+    ),
+  },
+  {
     id: 'cored-cube',
     name: 'Cored Cube',
     description: 'A cube with a sphere subtracted (CSG boolean), blue material.',

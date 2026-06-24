@@ -14,6 +14,7 @@ import { latheNode } from './generators/lathe';
 import { materialNode } from './material/material';
 import { randomNode } from './value/random';
 import { expressionNode } from './value/expression';
+import { timeNode } from './value/time';
 import { outputNode } from './output/output';
 
 let registered = false;
@@ -37,6 +38,7 @@ export function registerBuiltinNodes(): void {
   registerNode(materialNode);
   registerNode(randomNode);
   registerNode(expressionNode);
+  registerNode(timeNode);
   registerNode(outputNode);
 }
 

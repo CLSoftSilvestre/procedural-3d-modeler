@@ -21,6 +21,8 @@ export interface EvalContext {
   /** 'preview' lets nodes cut detail (e.g. segments) for fast viewport feedback while
    *  editing. Always 'full' for export/codegen, so it never affects generated output. */
   quality: EvalQuality;
+  /** Animation clock in seconds. Read by the Time node; drives procedural animation. */
+  time: number;
 }
 
 /** A unit of generated code: statements plus the variable holding this node's output. */
@@ -51,6 +53,9 @@ export interface NodeDef {
   label: string;
   /** One-line help shown as a tooltip in the palette and a subtitle in the inspector. */
   description?: string;
+  /** Output varies with `ctx.time` — its cache key includes time so only the animated
+   *  subgraph recomputes per frame. Set by the Time node. */
+  timeDependent?: boolean;
   inputs: SocketSpec[];
   outputs: SocketSpec[];
   /** Pure: perform the operation for the viewport. */

@@ -19,6 +19,7 @@ const AVAILABLE: Record<string, unknown> = {
 export function runGenerated(
   result: CodegenResult,
   paramOverrides: Record<string, unknown> = {},
+  time = 0,
 ): THREE.Mesh {
   const names: string[] = [];
   const values: unknown[] = [];
@@ -34,9 +35,9 @@ export function runGenerated(
     if (info.evalPrelude) preludes.push(info.evalPrelude);
   }
 
-  // The generated body references `params`; supply defaults merged with any overrides.
-  names.push('params');
-  values.push({ ...result.paramDefaults, ...paramOverrides });
+  // The generated body references `params` (and `time` when animated); supply both.
+  names.push('params', 'time');
+  values.push({ ...result.paramDefaults, ...paramOverrides }, time);
 
   const body = [result.helperSource, preludes.join('\n'), result.functionBody]
     .filter(Boolean)

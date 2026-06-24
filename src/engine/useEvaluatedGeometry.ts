@@ -15,11 +15,15 @@ interface EvalState {
 /**
  * Evaluate `graph` off the main thread, returning the latest geometry/errors.
  *
- * The EvalService (and its worker) is created in an effect and torn down on unmount,
- * so it survives React StrictMode's mount→unmount→remount cycle correctly: the worker
- * is recreated on remount rather than being left terminated.
+ * When `playing`, an animation loop advances a time clock and re-evaluates each frame
+ * (preview quality) so Time-driven graphs animate. Paused, it does the normal
+ * preview-then-full pass at the current time.
+ *
+ * The EvalService (and its worker) is created in an effect and torn down on unmount, so
+ * it survives React StrictMode's mount→unmount→remount cycle (worker recreated, not left
+ * terminated).
  */
-export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
+export function useEvaluatedGeometry(graph: Graph, seed = 1, playing = false): EvalState {
   const [service, setService] = useState<EvalService | null>(null);
   const [state, setState] = useState<EvalState>({
     geometry: null,
@@ -47,36 +51,52 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
 
   const lastChangeRef = useRef(0);
   const fullTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const timeRef = useRef(0);
+
+  const apply = (result: EvalResult) => {
+    setState((prev) =>
+      // On error, keep the last good geometry so the viewport never blanks out;
+      // otherwise adopt the new result (including a legitimate empty graph).
+      result.errors.length > 0
+        ? { geometry: prev.geometry, material: prev.material, errors: result.errors, evaluating: false }
+        : { geometry: result.geometry, material: result.material, errors: [], evaluating: false },
+    );
+  };
 
   useEffect(() => {
     if (!service) return;
 
-    const apply = (result: EvalResult) => {
-      setState((prev) =>
-        // On error, keep the last good geometry so the viewport never blanks out;
-        // otherwise adopt the new result (including a legitimate empty graph).
-        result.errors.length > 0
-          ? { geometry: prev.geometry, material: prev.material, errors: result.errors, evaluating: false }
-          : { geometry: result.geometry, material: result.material, errors: [], evaluating: false },
-      );
-    };
+    if (playing) {
+      // Animate: advance the clock and re-evaluate each frame at preview quality.
+      let raf = 0;
+      const startMs = performance.now() - timeRef.current * 1000; // resume from current time
+      const tick = () => {
+        timeRef.current = (performance.now() - startMs) / 1000;
+        service.request(graph, seed, 'preview', timeRef.current, apply);
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => cancelAnimationFrame(raf);
+    }
 
-    // Rapid successive edits → preview quality for fast feedback; a trailing full-quality
-    // pass runs once edits settle.
+    // Paused: preview while editing rapidly, then a trailing full-quality pass.
     const now = Date.now();
     const rapid = now - lastChangeRef.current < 180;
     lastChangeRef.current = now;
 
     setState((s) => ({ ...s, evaluating: true }));
-    service.request(graph, seed, rapid ? 'preview' : 'full', apply);
+    service.request(graph, seed, rapid ? 'preview' : 'full', timeRef.current, apply);
 
     clearTimeout(fullTimerRef.current);
     if (rapid) {
-      fullTimerRef.current = setTimeout(() => service.request(graph, seed, 'full', apply), 220);
+      fullTimerRef.current = setTimeout(
+        () => service.request(graph, seed, 'full', timeRef.current, apply),
+        220,
+      );
     }
-
     return () => clearTimeout(fullTimerRef.current);
-  }, [service, graph, seed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [service, graph, seed, playing]);
 
   return state;
 }

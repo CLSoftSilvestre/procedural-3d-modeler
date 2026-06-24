@@ -64,6 +64,7 @@ export function evaluateGraph(
   seed = 1,
   cache?: EvalCache,
   quality: EvalQuality = 'full',
+  time = 0,
 ): EvalResult {
   const errors: EvalError[] = [];
   if (!graph.outputNodeId) return { geometry: null, material: null, errors };
@@ -96,8 +97,11 @@ export function evaluateGraph(
       .map((e) => `${e.targetSocket}<-${nodeHashes.get(e.source) ?? '∅'}`)
       .sort()
       .join('|');
+    // Time only enters the hash for time-dependent nodes, so static subgraphs stay cached
+    // while the animated path recomputes each frame.
+    const timeSig = def.timeDependent ? `#t${time}` : '';
     const hash = fnv1a(
-      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#q${quality}#${upstream}`,
+      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#q${quality}${timeSig}#${upstream}`,
     );
     nodeHashes.set(nodeId, hash);
 
@@ -111,7 +115,7 @@ export function evaluateGraph(
     }
 
     try {
-      const result = def.evaluate(inputs, { random, quality }) as SocketValue;
+      const result = def.evaluate(inputs, { random, quality, time }) as SocketValue;
       outputs.set(nodeId, { [outSocket]: result });
       cache?.set(hash, result);
     } catch (err) {

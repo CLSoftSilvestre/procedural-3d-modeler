@@ -15,7 +15,7 @@ export class EvalService {
   private worker: Worker;
   private api: Comlink.Remote<EvalWorkerApi>;
   private running = false;
-  private pending: { graph: Graph; seed: number; quality: EvalQuality } | null = null;
+  private pending: { graph: Graph; seed: number; quality: EvalQuality; time: number } | null = null;
 
   constructor() {
     this.worker = new Worker(new URL('./worker/evalWorker.ts', import.meta.url), {
@@ -32,9 +32,10 @@ export class EvalService {
     graph: Graph,
     seed: number,
     quality: EvalQuality,
+    time: number,
     onResult: (result: EvalResult) => void,
   ): void {
-    this.pending = { graph, seed, quality };
+    this.pending = { graph, seed, quality, time };
     if (this.running) return;
     void this.drain(onResult);
   }
@@ -43,9 +44,9 @@ export class EvalService {
     this.running = true;
     try {
       while (this.pending) {
-        const { graph, seed, quality } = this.pending;
+        const { graph, seed, quality, time } = this.pending;
         this.pending = null;
-        const result = await this.api.evaluate(graph, seed, quality);
+        const result = await this.api.evaluate(graph, seed, quality, time);
         // Only deliver if nothing newer is queued.
         if (!this.pending) onResult(result);
       }

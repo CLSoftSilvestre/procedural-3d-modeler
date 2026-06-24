@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useStore } from '@/state/store';
 import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
-import { nodeDefsByCategory } from '@/nodes/registry';
+import { nodeDefsByCategory, getNodeDef } from '@/nodes/registry';
 import { downloadGraph, deserializeGraph } from '@/graph/serialize';
 import { EXAMPLES, getExample } from '@/examples';
 import { Viewport } from '@/viewport/Viewport';
@@ -175,6 +175,7 @@ export function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [playing, setPlaying] = useState(false);
   const [lighting, setLighting] = useState<Lighting>(() => {
     try {
       const raw = localStorage.getItem('p3m.lighting.v1');
@@ -192,7 +193,15 @@ export function App() {
     }
   }, [lighting]);
 
-  const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
+  const animated = useMemo(
+    () => graph.nodes.some((n) => getNodeDef(n.type)?.timeDependent),
+    [graph.nodes],
+  );
+  const { geometry, material, errors, evaluating } = useEvaluatedGeometry(
+    graph,
+    1,
+    playing && animated,
+  );
   const errorNodeIds = useMemo(
     () => new Set(errors.map((e) => e.nodeId).filter(Boolean)),
     [errors],
@@ -339,6 +348,15 @@ export function App() {
                 Grid
               </button>
               <LightsControl lighting={lighting} onChange={setLighting} />
+              {animated && (
+                <button
+                  className={playing ? 'is-active' : ''}
+                  onClick={() => setPlaying((v) => !v)}
+                  title={playing ? 'Pause animation' : 'Play animation'}
+                >
+                  {playing ? '❚❚ Pause' : '▶ Play'}
+                </button>
+              )}
               {geometry && (
                 <span className="viewport__stats">
                   {geometry.metadata.triCount.toLocaleString()} tris ·{' '}

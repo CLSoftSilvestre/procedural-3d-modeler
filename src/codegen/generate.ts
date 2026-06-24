@@ -19,6 +19,8 @@ export interface CodegenResult {
   paramDefaults: Record<string, unknown>;
   functionName: string;
   target: CodegenTarget;
+  /** True if the graph reads the time clock (exported fn takes a `time` arg). */
+  animated: boolean;
 }
 
 export type CodegenTarget = 'vanilla' | 'r3f';
@@ -120,6 +122,9 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     ? `{\n${graph.params.map((p) => `  ${p.name}: ${renderLiteral(p.default, p.type)},`).join('\n')}\n}`
     : '{}';
 
+  // Animated if any node reads the time clock.
+  const animated = graph.nodes.some((nd) => requireNodeDef(nd.type).timeDependent);
+
   const helperSource = helperSourceFor(helpers);
   const indent = (src: string, pad = '  ') =>
     src
@@ -132,16 +137,28 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
 
   let code: string;
   if (target === 'r3f') {
-    const importLines = ["import { useMemo } from 'react';", ...importStatementsFor(modules)];
+    const reactImport = animated
+      ? "import { useMemo, useRef, useState } from 'react';\nimport { useFrame } from '@react-three/fiber';"
+      : "import { useMemo } from 'react';";
+    const importLines = [reactImport, ...importStatementsFor(modules)];
     const paramsObj = graph.params.length
       ? `{\n${graph.params.map((p) => `    ${p.name}: props.${p.name} ?? ${renderLiteral(p.default, p.type)},`).join('\n')}\n  }`
       : '{}';
-    const deps = graph.params.map((p) => `params.${p.name}`).join(', ');
-    const memoBody = indent([...statements, `return { geometry: ${geomVar}, material: ${matExpr} };`].join('\n'), '    ');
+    const deps = [...graph.params.map((p) => `params.${p.name}`), ...(animated ? ['time'] : [])].join(', ');
+    const memoBody = indent(
+      [...statements, `return { geometry: ${geomVar}, material: ${matExpr} };`].join('\n'),
+      '    ',
+    );
     const component = [
       '/** Procedurally generated React Three Fiber component. */',
       `export function ${functionName}(props = {}) {`,
       `  const params = ${paramsObj};`,
+      ...(animated
+        ? [
+            '  const [time, setTime] = useState(0);',
+            '  useFrame((state) => setTime(state.clock.elapsedTime));',
+          ]
+        : []),
       `  const { geometry, material } = useMemo(() => {`,
       memoBody,
       `  }, [${deps}]);`,
@@ -151,9 +168,10 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     code = [importLines.join('\n'), helperSource, component].filter(Boolean).join('\n\n') + '\n';
   } else {
     const importLines = importStatementsFor(modules);
+    const sig = `params = ${defaultsLiteral}${animated ? ', time = 0' : ''}`;
     const fn = [
       '/** Procedurally generated with Procedural 3D Modeler. */',
-      `export function ${functionName}(params = ${defaultsLiteral}) {`,
+      `export function ${functionName}(${sig}) {`,
       indent(functionBody),
       '}',
     ].join('\n');
@@ -168,5 +186,6 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     paramDefaults,
     functionName,
     target,
+    animated,
   };
 }

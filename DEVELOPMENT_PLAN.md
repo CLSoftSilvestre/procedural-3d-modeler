@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 5 COMPLETE (params, R3F, Expression + Random) + M5 polish. Ready for Phase 7.
+- **Status:** Phases 0–6 done + procedural animation. Ready for Phase 7 (launch prep).
 - **Last updated:** 2026-06-24
-- **Current phase:** Between phases — Phase 7 (launch prep) or backlog/animation next.
+- **Current phase:** Phase 7 — launch prep next.
 
 ---
 
@@ -182,6 +182,18 @@
 
 ---
 
+## Procedural animation (delivered ahead of Phase 7)  `[~]`
+- [x] Time clock through the engine (`EvalContext.time`, `NodeDef.timeDependent`,
+      time-aware cache hashing so only the animated subgraph recomputes per frame).
+- [x] **Time** node (`value.time`, speed) feeding numeric inputs (via Expression etc.).
+- [x] Viewport **Play/Pause** (rAF loop advancing the clock, preview-quality per frame;
+      shown only for animated graphs).
+- [x] Codegen: vanilla `createModel(params, time)`; **R3F** animated variant (`useFrame`
+      → time state → `useMemo` keyed on time). `runGenerated(result, overrides, time)`.
+- [x] Animated example ("Pulsing Asteroid"). Parity tested at non-zero time.
+- [ ] Future: timeline scrubber, loop range, more drivers (sin/ease presets), bake to glTF
+      animation, morph targets.
+
 ## Backlog / future (post-v1)
 - Real-time collaboration (CRDT) — architecture left room for it.
 - Plugin/SDK for third-party nodes.
@@ -203,11 +215,9 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Procedural animation** (backlog → its own milestone): a `time` input + param drivers
-   (sin/linear/noise over time) building on the now-complete Value nodes + params; viewport
-   playback; export `createModel(params, time)` / R3F `useFrame`. (Discussed with user.)
-2. **Phase 7 — launch prep:** onboarding/tutorial, more example templates, versioned-graph
+1. **Phase 7 — launch prep:** onboarding/tutorial, more example templates, versioned-graph
    migration, telemetry (opt-in), deploy/PWA, landing page.
+2. Animation extras: timeline scrubber + loop range; bake-to-glTF animation.
 3. Phase 6 remainder (optional polish): transform gizmos, node groups/comments, recent
    files, theming/responsive/a11y pass, full user docs, worker pool for huge graphs.
 3. Codegen polish: Prettier formatting (prettier/standalone); winding-flip in Mirror
@@ -229,6 +239,24 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Procedural animation (Time node + playback + animated export)
+- **Did:** time clock end-to-end. `EvalContext.time` + `NodeDef.timeDependent`; engine
+  `evaluateGraph(...,time)` with **time only in the hash for time-dependent nodes** (static
+  subgraphs stay cached, animated path recomputes per frame, swept bounded). **Time** node
+  (`value.time`, speed) → drives numeric inputs. Threaded time through worker/EvalService;
+  hook gains a `playing` rAF loop (preview quality/frame, resumes from current time).
+  Viewport **Play/Pause** (only for animated graphs). Codegen: vanilla `createModel(params,
+  time)` (time arg only when animated); **R3F** animated variant (`useFrame`→`setTime`→
+  `useMemo` keyed on time); `runGenerated(result, overrides, time)`. Added "Pulsing
+  Asteroid" animated example.
+- **Tests:** +6 (Time drives geometry over time, speed scaling, vanilla codegen parity at
+  t=3, R3F useFrame structure, static graph not animated). 81/81 green.
+- **Verified:** typecheck, 81 tests, lint, build, dev-boot clean.
+- **Decisions/notes:** animation drives via a `time` value (procedural), not a keyframe
+  timeline — matches the "export a generator" philosophy. Playback uses preview quality per
+  frame for smoothness; export is always full. Timeline scrubber/loop range deferred.
+- **Next:** Phase 7 launch prep.
 
 ### 2026-06-24 — Fix: ambient slider had no effect (added IBL environment)
 - **Reported:** ambient slider made no visible difference.

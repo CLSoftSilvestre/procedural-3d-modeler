@@ -10,8 +10,8 @@ registerBuiltinNodes();
 const cache = new EvalCache();
 
 const api = {
-  evaluate(graph: Graph, seed = 1, quality: EvalQuality = 'full'): EvalResult {
-    return evaluateGraph(graph, seed, cache, quality);
+  evaluate(graph: Graph, seed = 1, quality: EvalQuality = 'full', time = 0): EvalResult {
+    return evaluateGraph(graph, seed, cache, quality, time);
   },
   clearCache(): void {
     cache.clear();

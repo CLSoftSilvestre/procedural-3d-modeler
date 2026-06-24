@@ -90,7 +90,7 @@ describe('transform modifier (geometry-in -> geometry-out)', () => {
 describe('registry', () => {
   it('registers the expected number of nodes', () => {
     // 6 primitives + transform + array + mirror + displace + twist + taper + boolean
-    // + polygon + star + extrude + lathe + material + random + expression + output
-    expect(allNodeDefs().length).toBe(21);
+    // + polygon + star + extrude + lathe + material + random + expression + time + output
+    expect(allNodeDefs().length).toBe(22);
   });
 });

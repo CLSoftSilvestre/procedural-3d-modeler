@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 4 MVP done — **M3 reached** (code export with parity tests green).
-- **Last updated:** 2026-06-23
-- **Current phase:** Phase 4 (Codegen) MVP complete → next: M2 demo, then Phase 5 (params).
+- **Status:** M2 + M3 reached — full modeling toolkit + code export, demo'd & verified.
+- **Last updated:** 2026-06-24
+- **Current phase:** Phase 5 (Parametric system → M4) — not started.
 
 ---
 
@@ -95,8 +95,9 @@
       `MaterialSpec`**; Output gained a Material input; engine returns `{geometry,
       material}`; viewport builds the three.js material. Inspector got a color control;
       handles render for connectable socket types. See ADR-006.
-- **Exit criteria (M2):** can build a non-trivial model (e.g. a parametric goblet or
-  modular building) end-to-end in the viewport.
+- **Exit criteria (M2):** ✅ can build non-trivial models end-to-end. Proven by the
+  bundled examples (Asteroid, Beveled Gear, Cored Cube) in `src/examples/` + the
+  Examples menu, verified by `examples.test.ts`.
 
 ## Phase 4 — Code generation MVP (→ M3)  `[x]`
 - [x] `CodeFragment` model + import deduping (`codegen/imports.ts`) + helper injection
@@ -166,10 +167,7 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **M2 demo** (the deferred demo): build a non-trivial textured model end-to-end in the
-   browser, export it, confirm the generated module runs in a blank three.js project;
-   bundle 2-3 example graphs + a Playwright smoke test.
-2. **Phase 5 — parametric system** (→ M4): promote node inputs to exposed `ExposedParam`s;
+1. **Phase 5 — parametric system** (→ M4): promote node inputs to exposed `ExposedParam`s;
    params panel with live sliders; codegen emits `createModel(params = {…})`; R3F target
    (B) + graph-JSON target (D).
 3. Codegen polish: Prettier formatting (prettier/standalone) for export; proper
@@ -190,6 +188,27 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — M2 demo: example library + blank-project export proof
+- **Did:**
+  - Authored 3 bundled example graphs in `src/examples/index.ts`: **Asteroid**
+    (sphere→displace→material), **Beveled Gear** (star→extrude+bevel→transform→material),
+    **Cored Cube** (box,sphere→boolean subtract→material). Added an **Examples** menu to
+    the toolbar to load them.
+  - `examples.test.ts`: each example evaluates to non-trivial geometry AND its generated
+    code runs (in-process) matching the evaluation. 55/55 tests green.
+  - **Blank-project proof:** generated the exported code to `examples/generated/*.mjs`
+    and ran them under **plain Node** with only `three`(+`three-bvh-csg`) from
+    node_modules — no app/bundler. All execute (Asteroid 2976 tris, Gear 284,
+    Cored Cube 1539). `examples/README.md` documents it; `node examples/generated/_verify.mjs`.
+  - Polished material codegen (removed an ugly double-ternary → `new (… ? A : B)({…})`).
+- **Verified:** typecheck, 55 tests, lint, build clean; node execution of generated code.
+- **Decisions/notes:** Examples deliberately avoid array/mirror so the generated code only
+  needs `three`/`three-bvh-csg` (three's `examples/jsm` deep import isn't always Node-ESM
+  resolvable). Playwright smoke test still deferred (unit + node-exec coverage is strong).
+  This nails M2 + makes M3's promise tangible: build → export → runs identically.
+- **Next:** Phase 5 — parametric system (exposed params, live sliders, parameterized
+  `createModel(params)`), → M4.
 
 ### 2026-06-23 — Phase 4 MVP: the code generator → M3 reached
 - **Did:** Built the product's crown jewel — graph → clean vanilla three.js code.

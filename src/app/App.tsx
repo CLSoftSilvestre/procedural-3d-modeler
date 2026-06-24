@@ -4,6 +4,7 @@ import { useStore } from '@/state/store';
 import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
 import { nodeDefsByCategory } from '@/nodes/registry';
 import { downloadGraph, deserializeGraph } from '@/graph/serialize';
+import { EXAMPLES, getExample } from '@/examples';
 import { Viewport } from '@/viewport/Viewport';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
@@ -81,6 +82,28 @@ function Toolbar({ onExport }: { onExport: () => void }) {
         style={{ display: 'none' }}
         onChange={onFile}
       />
+      <span className="toolbar__sep" />
+      <select
+        className="toolbar__examples"
+        value=""
+        onChange={(e) => {
+          const ex = getExample(e.target.value);
+          if (ex) {
+            loadGraph(ex.graph);
+            setNotice({ kind: 'info', message: `Loaded example: ${ex.name}` });
+          }
+          e.target.value = '';
+        }}
+      >
+        <option value="" disabled>
+          Examples…
+        </option>
+        {EXAMPLES.map((ex) => (
+          <option key={ex.id} value={ex.id}>
+            {ex.name}
+          </option>
+        ))}
+      </select>
       <span className="toolbar__sep" />
       <button className="toolbar__primary" onClick={onExport}>
         ⤓ Export Code

@@ -314,6 +314,15 @@ body,
   color: var(--muted);
 }
 
+.toolbar__examples {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
 /* toolbar primary action */
 .toolbar__primary {
   background: var(--accent) !important;

@@ -50,11 +50,10 @@ export const materialNode: NodeDef = {
 
   codegen(ctx) {
     const v = ctx.uniqueVar('material');
-    const cls = `${ctx.inputExpr('type')} === 'physical' ? 'MeshPhysicalMaterial' : 'MeshStandardMaterial'`;
+    const ctor = `${ctx.inputExpr('type')} === 'physical' ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial`;
     return {
       statements: [
-        `const ${v}_Ctor = (${cls}) === 'MeshPhysicalMaterial' ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial;`,
-        `const ${v} = new ${v}_Ctor({`,
+        `const ${v} = new (${ctor})({`,
         `  color: new THREE.Color(${ctx.inputExpr('color')}),`,
         `  roughness: ${ctx.inputExpr('roughness')},`,
         `  metalness: ${ctx.inputExpr('metalness')},`,

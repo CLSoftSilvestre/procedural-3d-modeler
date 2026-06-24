@@ -253,6 +253,10 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Notice bar: auto-dismiss + dismiss button
+- The top notice bar no longer sticks. **Info** notices (e.g. "Opened <project>") auto-clear after
+  4s; **errors** persist. Every notice now has an **×** dismiss button. App-wide fix. Checks clean.
+
 ### 2026-06-24 — Export polish: syntax highlighting
 - Added a **zero-dependency** highlighter (`src/codegen/highlight.ts`): tokenizes comments/
   strings/numbers/keywords/Capitalized-types and wraps them in `<span class="hl-*">` (escaped

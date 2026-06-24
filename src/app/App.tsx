@@ -20,6 +20,8 @@ import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
 import { NodeTooltip } from '@/ui/NodeTooltip';
 import { DND_NODE_MIME } from '@/ui/dnd';
 import type { NodeDef } from '@/nodes/NodeDef';
+import { WelcomeModal, Tour } from '@/ui/Onboarding';
+import { hasOnboarded, markOnboarded } from '@/ui/tour';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -179,7 +181,7 @@ function Toolbar({ onExport }: { onExport: () => void }) {
         ))}
       </select>
       <span className="toolbar__sep" />
-      <button className="toolbar__primary" onClick={onExport}>
+      <button className="toolbar__primary" onClick={onExport} data-tour="export">
         <Icon name="export" /> Export
       </button>
     </div>
@@ -196,6 +198,8 @@ export function App() {
   const centerRef = useRef<HTMLDivElement>(null);
   const [showExport, setShowExport] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => !hasOnboarded());
+  const [tourOpen, setTourOpen] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -293,6 +297,9 @@ export function App() {
           {evaluating && <span className="app__busy">evaluating…</span>}
           {geometry ? `${geometry.metadata.triCount.toLocaleString()} tris` : 'no output'}
         </span>
+        <button className="app__help" title="Take the tour" onClick={() => setTourOpen(true)}>
+          <Icon name="help" size={17} />
+        </button>
       </header>
 
       {notice && <div className={`app__notice app__notice--${notice.kind}`}>{notice.message}</div>}
@@ -300,7 +307,7 @@ export function App() {
       <div className="app__body" ref={centerRef}>
         {layout.leftOpen ? (
           <>
-            <aside className="app__palette" style={{ width: layout.leftW }}>
+            <aside className="app__palette" style={{ width: layout.leftW }} data-tour="palette">
               <div className="panel-head">
                 <span>Nodes</span>
                 <button className="panel-head__btn" title="Collapse" onClick={() => update({ leftOpen: false })}>
@@ -321,7 +328,11 @@ export function App() {
         )}
 
         <main className="app__center">
-          <section className="app__graph" style={{ height: layout.graphH, flex: '0 0 auto' }}>
+          <section
+            className="app__graph"
+            style={{ height: layout.graphH, flex: '0 0 auto' }}
+            data-tour="graph"
+          >
             <ReactFlowProvider>
               <GraphEditor errorNodeIds={errorNodeIds} />
             </ReactFlowProvider>
@@ -354,7 +365,7 @@ export function App() {
               update({ graphH: clamp(layout.graphH + dy, 140, h - 160) });
             }}
           />
-          <section className="app__viewport">
+          <section className="app__viewport" data-tour="viewport">
             <div className="viewport__toolbar">
               <button
                 className={wireframe ? 'is-active' : ''}
@@ -413,7 +424,7 @@ export function App() {
               axis="x"
               onDrag={(dx) => update({ rightW: clamp(layout.rightW - dx, 200, 480) })}
             />
-            <aside className="app__inspector" style={{ width: layout.rightW }}>
+            <aside className="app__inspector" style={{ width: layout.rightW }} data-tour="inspector">
               <div className="panel-head">
                 <span>Properties</span>
                 <button className="panel-head__btn" title="Collapse" onClick={() => update({ rightOpen: false })}>
@@ -454,6 +465,20 @@ export function App() {
         <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
       )}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {showWelcome && (
+        <WelcomeModal
+          onStartTour={() => {
+            markOnboarded();
+            setShowWelcome(false);
+            setTourOpen(true);
+          }}
+          onClose={() => {
+            markOnboarded();
+            setShowWelcome(false);
+          }}
+        />
+      )}
+      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
     </div>
   );
 }

@@ -172,7 +172,10 @@
   Remaining (gizmos, groups, recent files, theming/a11y, full docs) are nice-to-haves.
 
 ## Phase 7 — Launch readiness (→ M6)  `[ ]`
-- [ ] Onboarding flow + interactive tutorial
+- [x] Onboarding flow + interactive tutorial — first-run **WelcomeModal** + 5-step coachmark
+      **Tour** (spotlight + popover over palette/graph/properties/viewport/export via stable
+      `data-tour` anchors). "Seen" flag persisted (`p3m.onboarded.v1`); re-launchable from the
+      header **?** button. Esc/←/→ supported; missing targets fall back to a centered card.
 - [~] Example/template library — 9 built-in starter graphs (Examples menu); any can be
       Saved to JSON. (Faceted Gem, Hollow Pipe, Capsule, Twisted Column, Spinning Propeller +
       the originals.) TODO: thumbnails in the menu, importable community templates.
@@ -241,6 +244,17 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 7: onboarding flow + interactive tutorial
+- **WelcomeModal** on first run (offers the tour or skip); seen-flag persisted as
+  `p3m.onboarded.v1`. **Tour** (`src/ui/Onboarding.tsx`) is a portal overlay that spotlights one
+  area at a time (CSS box-shadow cutout) with a stepped popover; targets are stable `data-tour`
+  anchors on palette/graph/inspector/viewport/export (`src/ui/tour.ts` holds the script + helpers).
+  Keyboard: Esc closes, ←/→ navigate. A missing/collapsed target falls back to a centered card.
+- Re-launchable anytime from a new header **?** button (added a `help` icon).
+- Gotcha: `Onboarding.tsx` + `onboarding.ts` collided on case-insensitive macOS FS (TS1261/1149);
+  renamed the data module to `tour.ts`.
+- 97/97 tests; typecheck/lint/build clean. **Next:** PWA / offline + deploy.
 
 ### 2026-06-24 — Phase 7 (start): expanded example/template library
 - Added 5 new built-in examples (now 9 total), each verified end-to-end by `examples.test.ts`

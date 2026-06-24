@@ -17,7 +17,8 @@ export type IconName =
   | 'circle-filled'
   | 'search'
   | 'chevron-left'
-  | 'chevron-right';
+  | 'chevron-right'
+  | 'help';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -94,6 +95,13 @@ const PATHS: Record<IconName, JSX.Element> = {
   ),
   'chevron-left': <path d="M15 18l-6-6 6-6" />,
   'chevron-right': <path d="M9 18l6-6-6-6" />,
+  help: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 15 }: { name: IconName; size?: number }) {

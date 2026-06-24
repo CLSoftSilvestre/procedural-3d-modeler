@@ -485,22 +485,25 @@ export function App() {
                     className={gizmoMode === 'translate' ? 'is-active' : ''}
                     onClick={() => setGizmoMode('translate')}
                     title="Move (W)"
+                    aria-label="Move"
                   >
-                    Move
+                    <Icon name="move" size={16} />
                   </button>
                   <button
                     className={gizmoMode === 'rotate' ? 'is-active' : ''}
                     onClick={() => setGizmoMode('rotate')}
                     title="Rotate (E)"
+                    aria-label="Rotate"
                   >
-                    Rotate
+                    <Icon name="rotate" size={16} />
                   </button>
                   <button
                     className={gizmoMode === 'scale' ? 'is-active' : ''}
                     onClick={() => setGizmoMode('scale')}
                     title="Scale (R)"
+                    aria-label="Scale"
                   >
-                    Scale
+                    <Icon name="scale" size={16} />
                   </button>
                 </span>
               )}

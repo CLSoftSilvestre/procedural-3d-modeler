@@ -253,6 +253,10 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Gizmo mode buttons → icons
+- Move/Rotate/Scale in the viewport gizmo toolbar are now icons (new `move`/`rotate`/`scale`
+  icons) with `title` + `aria-label`; segmented buttons made square/centered. All checks clean.
+
 ### 2026-06-24 — Performance: code-splitting
 - Lazy-load on-demand UI via `React.lazy` + `Suspense`: **ExportPanel** (pulls in the
   glTF/STL/OBJ exporters, ~49 kB), **AboutModal**, onboarding **WelcomeModal/Tour**.

@@ -25,7 +25,10 @@ export type IconName =
   | 'grid'
   | 'sun'
   | 'folder'
-  | 'edit';
+  | 'edit'
+  | 'move'
+  | 'rotate'
+  | 'scale';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -149,6 +152,25 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </>
+  ),
+  move: (
+    <>
+      <path d="M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3" />
+      <path d="M2 12h20M12 2v20" />
+    </>
+  ),
+  rotate: (
+    <>
+      <path d="M21 12a9 9 0 1 1-3-6.7" />
+      <path d="M21 3v6h-6" />
+    </>
+  ),
+  scale: (
+    <>
+      <path d="M15 3h6v6" />
+      <path d="M9 21H3v-6" />
+      <path d="M21 3l-7 7M3 21l7-7" />
     </>
   ),
 };

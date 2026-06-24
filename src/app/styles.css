@@ -1836,10 +1836,22 @@ body,
   border-radius: 7px;
 }
 .viewport__gizmomode button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
   border: none;
   background: transparent;
   border-radius: 5px;
-  padding: 3px 8px;
+  padding: 0;
+  color: var(--muted);
+}
+.viewport__gizmomode button svg {
+  stroke: currentColor;
+}
+.viewport__gizmomode button:hover {
+  color: var(--text);
 }
 .viewport__gizmomode button.is-active {
   background: var(--accent);

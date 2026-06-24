@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  MiniMap,
   Handle,
   Position,
   BaseEdge,
@@ -20,9 +21,10 @@ import {
 import { DND_NODE_MIME } from './dnd';
 import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
-import { requireNodeDef } from '@/nodes/registry';
+import { getNodeDef, requireNodeDef } from '@/nodes/registry';
 import { isConnectableType } from '@/graph/types';
 import { categoryColor } from './categoryColors';
+import { GraphContextMenu } from './GraphContextMenu';
 
 /** Generic node renderer driven by the node definition's sockets. */
 function GraphNodeView({ id, data }: NodeProps) {
@@ -144,6 +146,9 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const select = useStore((s) => s.select);
   const addNode = useStore((s) => s.addNode);
   const { screenToFlowPosition } = useReactFlow();
+  const [menu, setMenu] = useState<{ x: number; y: number; flowX: number; flowY: number } | null>(
+    null,
+  );
 
   const nodeTypes = useMemo(() => ({ proc: GraphNodeView }), []);
   const edgeTypes = useMemo(() => ({ deletable: DeletableEdge }), []);
@@ -225,7 +230,17 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
     [addNode, screenToFlowPosition, select],
   );
 
+  const onPaneContextMenu = useCallback(
+    (e: React.MouseEvent | MouseEvent) => {
+      e.preventDefault();
+      const flow = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      setMenu({ x: e.clientX, y: e.clientY, flowX: flow.x, flowY: flow.y });
+    },
+    [screenToFlowPosition],
+  );
+
   return (
+    <>
     <ReactFlow
       nodes={rfNodes}
       edges={rfEdges}
@@ -236,6 +251,7 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       onConnect={onConnect}
       onNodesDelete={(nodes) => nodes.forEach((n) => removeNode(n.id))}
       onPaneClick={() => select(null)}
+      onPaneContextMenu={onPaneContextMenu}
       onDragOver={onDragOver}
       onDrop={onDrop}
       deleteKeyCode={['Backspace', 'Delete']}
@@ -244,6 +260,26 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
     >
       <Background color="#2a2a30" gap={16} />
       <Controls />
+      <MiniMap
+        pannable
+        zoomable
+        className="graph-minimap"
+        nodeColor={(n) => categoryColor(getNodeDef((n.data as { type: string }).type)?.category ?? '')}
+        maskColor="rgba(0,0,0,0.5)"
+      />
     </ReactFlow>
+    {menu && (
+      <GraphContextMenu
+        x={menu.x}
+        y={menu.y}
+        onClose={() => setMenu(null)}
+        onPick={(type) => {
+          const id = addNode(type, { x: menu.flowX, y: menu.flowY });
+          select(id);
+          setMenu(null);
+        }}
+      />
+    )}
+    </>
   );
 }

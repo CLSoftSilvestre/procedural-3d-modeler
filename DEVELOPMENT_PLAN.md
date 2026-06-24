@@ -253,6 +253,20 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Editor & viewport UX (batch 1): minimap, right-click add, screenshot
+- **MiniMap** in the graph editor (category-colored nodes, pannable/zoomable, themed).
+- **Right-click the canvas → add-node menu** at the cursor (`GraphContextMenu`): filterable,
+  Enter adds the first match, closes on pick/Esc/outside-click. Node drops at the click position.
+- **Viewport screenshot:** `Viewport` is now a `forwardRef` exposing `capturePNG()` (renders a
+  frame synchronously, returns a PNG data URL); a **PNG** button in the viewport toolbar downloads
+  `model.png`. Added `camera` icon.
+- Deferred (own session, noted to user): **node comments/frames** (needs a graph data-model
+  addition, e.g. `graph.notes[]`) and a **transform gizmo** (awkward today — we render one merged
+  output mesh, not per-node objects; the clean version maps the gizmo to a selected primitive's
+  built-in transform sockets).
+- All checks clean (105 tests). Project re-scoped: **free standalone app, no telemetry/billing**
+  (see memory) — Phase 7 business items dropped; future work = features/UX/perf.
+
 ### 2026-06-24 — Edge deletion + GitHub Pages deploy/CI
 - **Delete connections.** New `DeletableEdge` (custom React Flow edge) shows a “×” button at
   the edge midpoint on hover/selection (wide invisible hit-path for easy hovering); click removes

@@ -5,7 +5,7 @@ import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
 import { nodeDefsByCategory, getNodeDef } from '@/nodes/registry';
 import { downloadGraph, deserializeGraph } from '@/graph/serialize';
 import { EXAMPLES, getExample } from '@/examples';
-import { Viewport } from '@/viewport/Viewport';
+import { Viewport, type ViewportHandle } from '@/viewport/Viewport';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
@@ -196,6 +196,7 @@ export function App() {
   const loadGraph = useStore((s) => s.loadGraph);
   const { layout, update } = useLayout();
   const centerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<ViewportHandle>(null);
   const [showExport, setShowExport] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !hasOnboarded());
@@ -233,6 +234,15 @@ export function App() {
     () => new Set(errors.map((e) => e.nodeId).filter(Boolean)),
     [errors],
   );
+
+  function saveScreenshot() {
+    const url = viewportRef.current?.capturePNG();
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'model.png';
+    a.click();
+  }
 
   function quickStartBox() {
     const s = useStore.getState();
@@ -382,6 +392,13 @@ export function App() {
                 Grid
               </button>
               <LightsControl lighting={lighting} onChange={setLighting} />
+              <button
+                onClick={saveScreenshot}
+                disabled={!geometry}
+                title="Save viewport as PNG"
+              >
+                <Icon name="camera" size={14} /> PNG
+              </button>
               {animated && (
                 <button
                   className={playing ? 'is-active' : ''}
@@ -399,6 +416,7 @@ export function App() {
               )}
             </div>
             <Viewport
+              ref={viewportRef}
               geometry={geometry}
               material={material}
               wireframe={wireframe}

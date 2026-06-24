@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -15,25 +15,48 @@ interface ViewportProps {
   lighting?: Lighting;
 }
 
+/** Imperative API exposed to parents (e.g. for capturing a screenshot). */
+export interface ViewportHandle {
+  /** Render the current frame and return it as a PNG data URL, or null if unavailable. */
+  capturePNG: () => string | null;
+}
+
 /**
  * three.js viewport. Owns the scene/camera/renderer imperatively; React only feeds it
  * the evaluated geometry. We dogfood three.js here — it is the target runtime.
  */
-export function Viewport({
-  geometry,
-  material,
-  wireframe = false,
-  showGrid = true,
-  lighting = DEFAULT_LIGHTING,
-}: ViewportProps) {
+export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewport(
+  {
+    geometry,
+    material,
+    wireframe = false,
+    showGrid = true,
+    lighting = DEFAULT_LIGHTING,
+  },
+  ref,
+) {
   const mountRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const ambientRef = useRef<THREE.AmbientLight | null>(null);
   const keyRef = useRef<THREE.DirectionalLight | null>(null);
   const fillRef = useRef<THREE.DirectionalLight | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+
+  // Capture: render synchronously (so the drawing buffer is valid) then read it.
+  useImperativeHandle(ref, () => ({
+    capturePNG: () => {
+      const renderer = rendererRef.current;
+      const scene = sceneRef.current;
+      const camera = cameraRef.current;
+      if (!renderer || !scene || !camera) return null;
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL('image/png');
+    },
+  }));
 
   // Set up the scene once.
   useEffect(() => {
@@ -51,6 +74,7 @@ export function Viewport({
       1000,
     );
     camera.position.set(3, 3, 4);
+    cameraRef.current = camera;
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -71,6 +95,7 @@ export function Viewport({
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1;
+    rendererRef.current = renderer;
     mount.appendChild(renderer.domElement);
 
     // Image-based lighting so PBR materials (esp. metals/glass) are lit & reflective.
@@ -124,6 +149,8 @@ export function Viewport({
       renderer.dispose();
       mount.removeChild(renderer.domElement);
       sceneRef.current = null;
+      rendererRef.current = null;
+      cameraRef.current = null;
     };
   }, []);
 
@@ -167,4 +194,4 @@ export function Viewport({
   }, [lighting]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
-}
+});

@@ -1633,3 +1633,78 @@ body,
   border-color: var(--danger, #ff5370);
   color: #fff;
 }
+
+/* graph minimap */
+.graph-minimap {
+  background: var(--panel) !important;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.graph-minimap .react-flow__minimap-mask {
+  fill: rgba(0, 0, 0, 0.5);
+}
+
+/* right-click add-node menu */
+.ctxmenu {
+  position: fixed;
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  max-height: 370px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.ctxmenu__search {
+  margin: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.ctxmenu__list {
+  overflow-y: auto;
+  padding: 0 8px 8px;
+}
+.ctxmenu__group {
+  margin-bottom: 8px;
+}
+.ctxmenu__cat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin: 4px 2px;
+}
+.ctxmenu__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.ctxmenu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ctxmenu__item:hover {
+  background: var(--panel-2);
+}
+.ctxmenu__empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 8px;
+}

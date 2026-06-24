@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 5 core done — **M4 reached** (exposed params drive viewport + parameterized export).
+- **Status:** Phase 6 batch 1 done — error robustness, autosave, glTF export, palette search.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 5 — wrap-up (expression/random nodes, R3F target) then Phase 6 polish.
+- **Current phase:** Phase 6 (Commercial polish → M5) — in progress; then Phase 5 extras.
 
 ---
 
@@ -130,13 +130,19 @@
   `createModel(params)` is runtime-parameterized (proven: override test reproduces an
   eval with that value). Expression nodes + R3F target are the remaining Phase-5 extras.
 
-## Phase 6 — Commercial polish (→ M5)  `[ ]`
+## Phase 6 — Commercial polish (→ M5)  `[~]`
 - [ ] Performance pass: LOD/preview quality, worker pool, large-graph profiling
-- [ ] Robust error handling + node error surfacing (no white-screen crashes)
-- [ ] glTF/GLB export (Target C)
-- [ ] UX: node search/palette, keyboard shortcuts, copy/paste nodes, groups/comments
+- [x] Robust error handling + node error surfacing — eval errors keep the **last good
+      geometry** (viewport never blanks); failing nodes get a red highlight in the graph
+      (error nodeIds → node `data.error`); messages in the viewport overlay. ErrorBoundary
+      already prevents white-screens.
+- [x] glTF/GLB export (Target C) — `export/gltf.ts` (GLTFExporter) + Export panel tabs
+      (Code / glTF) with .glb (binary) and .gltf (JSON) download.
+- [x] UX: node search/palette (filter box). [ ] keyboard shortcuts (beyond undo/redo),
+      copy/paste nodes, groups/comments.
 - [ ] Viewport tools: transform gizmos, wireframe/normals/stats overlays
-- [ ] Autosave, local project storage, recent files
+- [x] Autosave + local project storage — `state/persistence.ts` (debounced localStorage
+      save, restore on load, corrupt-data safe) + **New** toolbar button. [ ] recent files.
 - [ ] Theming, responsive layout, accessibility pass
 - [ ] User docs + in-app help/tooltips per node
 - **Exit criteria (M5):** stable, fast, pleasant; no known data-loss or crash bugs.
@@ -173,14 +179,12 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Phase 5 extras** (optional): Expression nodes (Monaco) + seeded Random node; R3F
-   export target (B). Defer if prioritizing polish.
-2. **Phase 6 — commercial polish** (→ M5): performance (LOD/preview while dragging,
-   worker pool), per-node error surfacing, glTF/GLB export (Target C), node search/palette
-   UX, gizmos, autosave/local projects, docs.
-3. Codegen polish: Prettier formatting (prettier/standalone) for export; proper
-   winding-flip in Mirror codegen (cosmetic — parity already holds on positions);
-   tree-shakeable named three imports option.
+1. **Phase 6 batch 2:** performance (LOD/preview-while-dragging via a quality flag through
+   eval; worker pool for big graphs), viewport overlays (wireframe/grid/stats toggles) +
+   transform gizmos, copy/paste nodes, per-node tooltips/help.
+2. **Phase 5 extras:** Expression nodes (Monaco) + seeded Random node; R3F export target (B).
+3. Codegen polish: Prettier formatting (prettier/standalone); winding-flip in Mirror
+   codegen; tree-shakeable named three imports option.
 4. Backfill Phase-3 niceties: circle primitive, subdivide/smooth, bend, grid Array,
    vector3 inspector control, vertex color, multi-material output.
 
@@ -198,6 +202,24 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 6 batch 1: robustness, autosave, glTF, search
+- **Did:**
+  - **Error robustness:** `useEvaluatedGeometry` keeps the last good geometry/material
+    when an eval returns errors (viewport never blanks); failing nodes are highlighted red
+    in the graph (errors → `errorNodeIds` → node `data.error`); messages in the overlay.
+  - **Autosave:** `state/persistence.ts` — debounced localStorage save on graph change,
+    restore on startup (in `main.tsx`), corrupt-data safe; **New** toolbar button +
+    `newGraph` store action. Test with a localStorage mock (3 cases).
+  - **glTF/GLB export (Target C):** `export/gltf.ts` (GLTFExporter → Blob) + Export panel
+    redesigned with **Code / glTF tabs**; .glb (binary) + .gltf (JSON) downloads.
+  - **Palette search:** filter box over node label/category.
+- **Verified:** typecheck, 60 tests, lint, build, dev-server boot.
+- **Decisions/notes:** glTF export is browser-only (GLTFExporter needs DOM) — not unit
+  tested; the geometry/material it serializes is already parity-covered. Last-good-geometry
+  only kicks in when there ARE errors (a legitimately empty graph still clears).
+- **Next:** Phase 6 batch 2 (perf/LOD, viewport overlays+gizmos, copy/paste, tooltips),
+  then Phase 5 extras.
 
 ### 2026-06-24 — Phase 5 core: parametric system → M4 reached
 - **Did:** Exposed parameters end-to-end (build → live tweak → parameterized export).

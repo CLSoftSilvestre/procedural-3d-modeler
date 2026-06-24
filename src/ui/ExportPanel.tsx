@@ -1,15 +1,24 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '@/state/store';
 import { generateModule } from '@/codegen/generate';
+import { downloadGLTF } from '@/export/gltf';
+import type { GeometryData } from '@/geometry/GeometryData';
+import type { MaterialSpec } from '@/material/MaterialData';
 
 interface ExportPanelProps {
+  geometry: GeometryData | null;
+  material: MaterialSpec | null;
   onClose: () => void;
 }
 
-/** Modal showing the generated three.js module for the current graph. */
-export function ExportPanel({ onClose }: ExportPanelProps) {
+type Tab = 'code' | 'gltf';
+
+/** Modal: export the current graph as three.js code or as glTF/GLB. */
+export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
   const graph = useStore((s) => s.graph);
+  const [tab, setTab] = useState<Tab>('code');
   const [copied, setCopied] = useState(false);
+  const [gltfStatus, setGltfStatus] = useState<string | null>(null);
 
   const result = useMemo(() => {
     try {
@@ -26,7 +35,7 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
     });
   }
 
-  function download() {
+  function downloadCode() {
     const blob = new Blob([result.code], { type: 'text/typescript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -36,25 +45,64 @@ export function ExportPanel({ onClose }: ExportPanelProps) {
     URL.revokeObjectURL(url);
   }
 
+  async function exportGltf(binary: boolean) {
+    if (!geometry) return;
+    setGltfStatus('Exporting…');
+    try {
+      await downloadGLTF(geometry, material, binary);
+      setGltfStatus(`Downloaded ${binary ? 'model.glb' : 'model.gltf'}`);
+    } catch (err) {
+      setGltfStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   return (
     <div className="modal__backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal__header">
-          <span>Export — vanilla three.js module</span>
+          <div className="modal__tabs">
+            <button className={tab === 'code' ? 'is-active' : ''} onClick={() => setTab('code')}>
+              three.js code
+            </button>
+            <button className={tab === 'gltf' ? 'is-active' : ''} onClick={() => setTab('gltf')}>
+              glTF / GLB
+            </button>
+          </div>
           <div className="modal__actions">
-            <button onClick={copy} disabled={!!result.error}>
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-            <button onClick={download} disabled={!!result.error}>
-              Download .ts
-            </button>
+            {tab === 'code' && (
+              <>
+                <button onClick={copy} disabled={!!result.error}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button onClick={downloadCode} disabled={!!result.error}>
+                  Download .ts
+                </button>
+              </>
+            )}
             <button onClick={onClose}>Close</button>
           </div>
         </div>
-        {result.error ? (
-          <div className="modal__error">⚠ {result.error}</div>
+
+        {tab === 'code' ? (
+          result.error ? (
+            <div className="modal__error">⚠ {result.error}</div>
+          ) : (
+            <pre className="modal__code">{result.code}</pre>
+          )
         ) : (
-          <pre className="modal__code">{result.code}</pre>
+          <div className="modal__gltf">
+            <p>Export the current model as a baked glTF asset.</p>
+            <div className="modal__actions">
+              <button onClick={() => exportGltf(true)} disabled={!geometry}>
+                Download .glb (binary)
+              </button>
+              <button onClick={() => exportGltf(false)} disabled={!geometry}>
+                Download .gltf (JSON)
+              </button>
+            </div>
+            {!geometry && <div className="modal__error">No geometry to export — connect an Output.</div>}
+            {gltfStatus && <div className="modal__status">{gltfStatus}</div>}
+          </div>
         )}
       </div>
     </div>

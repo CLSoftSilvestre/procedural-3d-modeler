@@ -16,7 +16,9 @@
       "Bash(git commit *)",
       "Bash(perl -0pi -e 's/return \\\\{ geometry: null, errors \\\\};/return { geometry: null, material: null, errors };/g' src/engine/evaluate.ts)",
       "Bash(npx vitest *)",
-      "Bash(node examples/generated/_verify.mjs)"
+      "Bash(node examples/generated/_verify.mjs)",
+      "Bash(pkill -f vite)",
+      "Bash(curl -s -o /dev/null -w \"root HTTP %{http_code}\\\\n\" http://localhost:5173/)"
     ],
     "additionalDirectories": [
       "/tmp",

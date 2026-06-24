@@ -49,12 +49,13 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
     if (!service) return;
     setState((s) => ({ ...s, evaluating: true }));
     service.request(graph, seed, (result) => {
-      setState({
-        geometry: result.geometry,
-        material: result.material,
-        errors: result.errors,
-        evaluating: false,
-      });
+      setState((prev) =>
+        // On error, keep the last good geometry so the viewport never blanks out;
+        // otherwise adopt the new result (including a legitimate empty graph).
+        result.errors.length > 0
+          ? { geometry: prev.geometry, material: prev.material, errors: result.errors, evaluating: false }
+          : { geometry: result.geometry, material: result.material, errors: [], evaluating: false },
+      );
     });
   }, [service, graph, seed]);
 

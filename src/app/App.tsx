@@ -14,10 +14,32 @@ import { ExportPanel } from '@/ui/ExportPanel';
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
   const byCategory = useMemo(() => nodeDefsByCategory(), []);
+  const [query, setQuery] = useState('');
+
+  const q = query.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      [...byCategory.entries()]
+        .map(([category, defs]) => {
+          const matches = defs.filter(
+            (d) => !q || d.label.toLowerCase().includes(q) || category.toLowerCase().includes(q),
+          );
+          return [category, matches] as const;
+        })
+        .filter(([, defs]) => defs.length > 0),
+    [byCategory, q],
+  );
 
   return (
     <div className="palette">
-      {[...byCategory.entries()].map(([category, defs]) => (
+      <input
+        className="palette__search"
+        type="search"
+        placeholder="Search nodes…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {filtered.map(([category, defs]) => (
         <div className="palette__group" key={category}>
           <span className="palette__category">{category}</span>
           {defs.map((def) => (
@@ -33,6 +55,7 @@ function NodePalette() {
           ))}
         </div>
       ))}
+      {filtered.length === 0 && <div className="panel__empty">No nodes match.</div>}
     </div>
   );
 }
@@ -44,6 +67,7 @@ function Toolbar({ onExport }: { onExport: () => void }) {
   const canRedo = useStore((s) => s.future.length > 0);
   const graph = useStore((s) => s.graph);
   const loadGraph = useStore((s) => s.loadGraph);
+  const newGraph = useStore((s) => s.newGraph);
   const setNotice = useStore((s) => s.setNotice);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -67,6 +91,17 @@ function Toolbar({ onExport }: { onExport: () => void }) {
 
   return (
     <div className="toolbar">
+      <button
+        onClick={() => {
+          if (graph.nodes.length === 0 || confirm('Start a new empty graph? (Undo restores it.)')) {
+            newGraph();
+          }
+        }}
+        title="New empty graph"
+      >
+        ✱ New
+      </button>
+      <span className="toolbar__sep" />
       <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)">
         ↶ Undo
       </button>
@@ -121,6 +156,10 @@ export function App() {
   const [showExport, setShowExport] = useState(false);
 
   const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
+  const errorNodeIds = useMemo(
+    () => new Set(errors.map((e) => e.nodeId).filter(Boolean)),
+    [errors],
+  );
 
   // Keyboard shortcuts for undo/redo.
   useEffect(() => {
@@ -157,7 +196,7 @@ export function App() {
         <main className="app__center">
           <section className="app__graph">
             <ReactFlowProvider>
-              <GraphEditor />
+              <GraphEditor errorNodeIds={errorNodeIds} />
             </ReactFlowProvider>
           </section>
           <section className="app__viewport">
@@ -182,7 +221,9 @@ export function App() {
         </aside>
       </div>
 
-      {showExport && <ExportPanel onClose={() => setShowExport(false)} />}
+      {showExport && (
+        <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
+      )}
     </div>
   );
 }

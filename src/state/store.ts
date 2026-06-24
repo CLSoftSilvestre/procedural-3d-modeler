@@ -32,6 +32,7 @@ interface AppState {
   setParamValue: (paramId: string, value: LiteralValue) => void;
   renameParam: (paramId: string, name: string) => void;
   loadGraph: (graph: Graph) => void;
+  newGraph: () => void;
   undo: () => void;
   redo: () => void;
   setNotice: (notice: AppState['notice']) => void;
@@ -230,6 +231,14 @@ export const useStore = create<AppState>()(
         set((s) => {
           pushHistory(s);
           s.graph = { ...graph, version: GRAPH_VERSION };
+          s.selectedNodeId = null;
+          s.lastEditKey = null;
+        }),
+
+      newGraph: () =>
+        set((s) => {
+          pushHistory(s);
+          s.graph = createEmptyGraph();
           s.selectedNodeId = null;
           s.lastEditKey = null;
         }),

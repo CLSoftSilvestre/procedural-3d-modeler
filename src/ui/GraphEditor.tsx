@@ -21,9 +21,10 @@ function GraphNodeView({ id, data }: NodeProps) {
   const def = requireNodeDef(data.type as string);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const selected = selectedNodeId === id;
+  const hasError = Boolean(data.error);
 
   return (
-    <div className={`graph-node${selected ? ' selected' : ''}`}>
+    <div className={`graph-node${selected ? ' selected' : ''}${hasError ? ' has-error' : ''}`}>
       <div className="graph-node__title">{def.label}</div>
       <div className="graph-node__body">
         {def.inputs.map((s, i) => (
@@ -57,7 +58,7 @@ function GraphNodeView({ id, data }: NodeProps) {
   );
 }
 
-export function GraphEditor() {
+export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const graph = useStore((s) => s.graph);
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const moveNode = useStore((s) => s.moveNode);
@@ -76,9 +77,9 @@ export function GraphEditor() {
         position: n.position,
         // Reflect selection so React Flow knows what to delete on Backspace/Delete.
         selected: n.id === selectedNodeId,
-        data: { type: n.type },
+        data: { type: n.type, error: errorNodeIds?.has(n.id) ?? false },
       })),
-    [graph.nodes, selectedNodeId],
+    [graph.nodes, selectedNodeId, errorNodeIds],
   );
 
   const rfEdges: RFEdge[] = useMemo(

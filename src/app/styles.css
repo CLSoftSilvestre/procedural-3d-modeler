@@ -153,6 +153,15 @@ body,
 .palette {
   padding: 10px;
 }
+.palette__search {
+  width: 100%;
+  margin-bottom: 10px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
 .palette__group {
   margin-bottom: 14px;
 }
@@ -191,6 +200,10 @@ body,
 .graph-node.selected {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
+}
+.graph-node.has-error {
+  border-color: #e0564f;
+  box-shadow: 0 0 0 1px #e0564f;
 }
 .graph-node__title {
   padding: 6px 10px;
@@ -483,6 +496,32 @@ body,
 .modal__actions {
   display: flex;
   gap: 6px;
+}
+.modal__tabs {
+  display: flex;
+  gap: 4px;
+}
+.modal__tabs button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.modal__tabs button.is-active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.modal__gltf {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal__status {
+  color: var(--accent);
+  font-size: 12px;
 }
 .modal__actions button {
   background: var(--panel-2);

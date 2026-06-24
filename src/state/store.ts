@@ -25,6 +25,7 @@ interface AppState {
   removeNode: (id: string) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   setNodeValue: (id: string, socketId: string, value: number | boolean | string | number[]) => void;
+  setNodeValues: (id: string, values: Record<string, LiteralValue>) => void;
   addEdge: (edge: Omit<Edge, 'id'>) => void;
   removeEdge: (id: string) => void;
   setOutputNode: (id: string | null) => void;
@@ -142,6 +143,19 @@ export const useStore = create<AppState>()(
           pushHistory(s, `value:${id}:${socketId}`);
           const node = s.graph.nodes.find((n) => n.id === id);
           if (node) node.values[socketId] = value as never;
+        }),
+
+      setNodeValues: (id, values) =>
+        set((s) => {
+          pushHistory(s);
+          const node = s.graph.nodes.find((n) => n.id === id);
+          if (!node) return;
+          for (const [k, v] of Object.entries(values)) {
+            node.values[k] = v as never;
+            // Keep any bound param in sync.
+            const param = s.graph.params.find((p) => p.nodeId === id && p.socketId === k);
+            if (param) param.default = v;
+          }
         }),
 
       addEdge: (edge) =>

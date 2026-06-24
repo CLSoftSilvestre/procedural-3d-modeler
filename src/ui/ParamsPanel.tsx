@@ -2,6 +2,7 @@ import { useStore } from '@/state/store';
 import { getNodeDef } from '@/nodes/registry';
 import type { LiteralValue } from '@/graph/types';
 import { ValueControl } from './ValueControl';
+import { Icon } from './Icon';
 
 /**
  * Params panel — lists exposed parameters and drives them live. Each param maps to a
@@ -39,18 +40,18 @@ export function ParamsPanel() {
                 onChange={(e) => renameParam(p.id, e.target.value)}
               />
               <button
-                className="params__locate"
+                className="iconbtn"
                 title="Select bound node"
                 onClick={() => select(p.nodeId)}
               >
-                ⌖
+                <Icon name="locate" size={14} />
               </button>
               <button
-                className="params__remove"
+                className="iconbtn iconbtn--danger"
                 title="Remove parameter"
                 onClick={() => unexposeParam(p.id)}
               >
-                ✕
+                <Icon name="remove" size={14} />
               </button>
             </div>
             <ValueControl

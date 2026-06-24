@@ -149,7 +149,11 @@
 - [x] Viewport tools: **wireframe / grid toggles + stats** overlay. [ ] transform gizmos.
 - [x] Autosave + local project storage (`state/persistence.ts`) + **New** button.
       [ ] recent files.
-- [ ] Theming, responsive layout, accessibility pass
+- [~] Theming/UI polish — SVG icon set (`ui/Icon.tsx`) replacing broken emoji glyphs;
+      dark-themed React Flow controls/edges/handles; **material presets library**
+      (`material/presets.ts`: steel/aluminum/chrome/gold/copper/iron/painted/plastic/
+      rubber/oak/walnut/concrete/ceramic/terracotta/glass) via an Inspector preset picker
+      (+ `setNodeValues` store action). [ ] responsive layout, a11y pass.
 - [x] Per-node **tooltips/help** (`NodeDef.description` on all nodes → palette tooltip +
       inspector subtitle). [ ] full user docs.
 - **Exit criteria (M5):** ✅ stable, fast, pleasant; no known data-loss/crash bugs.
@@ -212,6 +216,23 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — UI/UX polish: icons, material presets, themed controls
+- **Reported:** button glyphs rendered as boxes; no material library; white zoom buttons.
+- **Did:**
+  - **Icons:** `ui/Icon.tsx` — inline SVG (Feather-style, currentColor) set (new/undo/redo/
+    save/load/export/duplicate/delete/locate/remove/circle/search). Replaced all emoji
+    glyphs in the toolbar, Inspector (duplicate/delete/expose), and Params panel
+    (locate/remove). Generic `.iconbtn` style.
+  - **Material presets:** `material/presets.ts` — 15 realistic PBR presets grouped
+    (Metal/Plastic/Wood/Mineral/Other). `MaterialPresetPicker` shown on the Material node
+    applies a preset via new `setNodeValues(id, values)` store action (single undo step,
+    keeps bound params in sync).
+  - **Theme:** dark-styled `.react-flow__controls` (was white), edges (muted→accent on
+    hover/selected), connection line, handles; toolbar icon coloring.
+  - Tests: +2 presets. 68/68 green.
+- **Verified:** typecheck, 68 tests, lint, build, dev-boot clean.
+- **Next:** further polish as desired (responsive/a11y, node-graph visuals) or Phase 7.
 
 ### 2026-06-24 — Phase 5 extra: R3F export target (B)
 - **Did:** `generateModule(graph, { target })` now supports `'vanilla' | 'r3f'`.

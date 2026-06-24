@@ -10,6 +10,7 @@ import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
 import { ExportPanel } from '@/ui/ExportPanel';
+import { Icon } from '@/ui/Icon';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -100,18 +101,22 @@ function Toolbar({ onExport }: { onExport: () => void }) {
         }}
         title="New empty graph"
       >
-        ✱ New
+        <Icon name="new" /> New
       </button>
       <span className="toolbar__sep" />
       <button onClick={undo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)">
-        ↶ Undo
+        <Icon name="undo" /> Undo
       </button>
       <button onClick={redo} disabled={!canRedo} title="Redo (Ctrl/Cmd+Shift+Z)">
-        ↷ Redo
+        <Icon name="redo" /> Redo
       </button>
       <span className="toolbar__sep" />
-      <button onClick={() => downloadGraph(graph)}>⭳ Save</button>
-      <button onClick={() => fileRef.current?.click()}>⭱ Load</button>
+      <button onClick={() => downloadGraph(graph)} title="Save graph as JSON">
+        <Icon name="save" /> Save
+      </button>
+      <button onClick={() => fileRef.current?.click()} title="Load graph JSON">
+        <Icon name="load" /> Load
+      </button>
       <input
         ref={fileRef}
         type="file"
@@ -143,7 +148,7 @@ function Toolbar({ onExport }: { onExport: () => void }) {
       </select>
       <span className="toolbar__sep" />
       <button className="toolbar__primary" onClick={onExport}>
-        ⤓ Export Code
+        <Icon name="export" /> Export
       </button>
     </div>
   );

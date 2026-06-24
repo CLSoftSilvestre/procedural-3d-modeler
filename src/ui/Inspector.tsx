@@ -2,6 +2,8 @@ import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
 import { isConnectableType, type LiteralValue } from '@/graph/types';
 import { ValueControl } from './ValueControl';
+import { MaterialPresetPicker } from './MaterialPresetPicker';
+import { Icon } from './Icon';
 
 export function Inspector() {
   const selectedNodeId = useStore((s) => s.selectedNodeId);
@@ -26,22 +28,23 @@ export function Inspector() {
         <h3 className="inspector__title">{def.label}</h3>
         <div className="inspector__headbtns">
           <button
-            className="inspector__dup"
+            className="iconbtn"
             title="Duplicate node (Ctrl/Cmd+D)"
             onClick={() => duplicateNode(selectedNodeId)}
           >
-            Duplicate
+            <Icon name="duplicate" />
           </button>
           <button
-            className="inspector__delete"
+            className="iconbtn iconbtn--danger"
             title="Delete node (or select it and press Delete/Backspace)"
             onClick={() => removeNode(selectedNodeId)}
           >
-            Delete
+            <Icon name="delete" />
           </button>
         </div>
       </div>
       {def.description && <p className="inspector__desc">{def.description}</p>}
+      {node.type === 'material.standard' && <MaterialPresetPicker nodeId={selectedNodeId} />}
       {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
       {editable.map((socket) => {
         const value = node.values[socket.id];
@@ -55,7 +58,8 @@ export function Inspector() {
                 title={param ? `Exposed as param "${param.name}" — click to remove` : 'Expose as parameter'}
                 onClick={() => (param ? unexposeParam(param.id) : exposeSocket(selectedNodeId, socket.id))}
               >
-                {param ? '◉ param' : '○ expose'}
+                <Icon name={param ? 'circle-filled' : 'circle'} size={11} />
+                {param ? 'param' : 'expose'}
               </button>
             </div>
             {param ? (

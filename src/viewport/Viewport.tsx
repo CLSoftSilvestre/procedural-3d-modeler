@@ -228,7 +228,17 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
       tControls.removeEventListener('objectChange', reportChange);
       tControls.removeEventListener('dragging-changed', onDraggingChanged as never);
       tControls.detach();
-      tControls.dispose();
+      tControls.disconnect();
+      // NB: tControls.dispose() is broken in this three build (it calls this.traverse on a
+      // non-Object3D Controls), so free the helper's GPU resources ourselves.
+      scene.remove(tHelper);
+      tHelper.traverse((child) => {
+        const obj = child as THREE.Mesh;
+        obj.geometry?.dispose();
+        const m = obj.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+        else m?.dispose();
+      });
       viewHelper.dispose();
       controls.dispose();
       envTexture.dispose();

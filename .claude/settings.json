@@ -30,7 +30,8 @@
       "Bash(node -e \"console.log\\(require\\('three/package.json'\\).version\\)\")",
       "Bash(node -p \"require\\('./package.json'\\).version\")",
       "Bash(which rsvg-convert *)",
-      "Read(//opt/homebrew/bin/**)"
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(sort -t'\\(' -k1)"
     ],
     "additionalDirectories": [
       "/tmp",

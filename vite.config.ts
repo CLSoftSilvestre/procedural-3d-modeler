@@ -56,6 +56,18 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split big, rarely-changing vendors into their own chunks so the browser caches
+        // them across app deploys (and downloads them in parallel on first load).
+        manualChunks: {
+          three: ['three'],
+          reactflow: ['@xyflow/react'],
+        },
+      },
+    },
+  },
   worker: {
     format: 'es',
   },

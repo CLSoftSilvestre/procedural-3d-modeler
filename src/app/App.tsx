@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useStore } from '@/state/store';
 import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
@@ -10,8 +10,10 @@ import { hasTransformSockets, TRANSFORM_DEFAULTS } from '@/nodes/transformShared
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
-import { ExportPanel } from '@/ui/ExportPanel';
-import { AboutModal } from '@/ui/AboutModal';
+// Lazy-loaded: the export panel pulls in the glTF/STL/OBJ exporters; about/onboarding are
+// only shown on demand. Keeping them out of the initial bundle speeds first load.
+const ExportPanel = lazy(() => import('@/ui/ExportPanel').then((m) => ({ default: m.ExportPanel })));
+const AboutModal = lazy(() => import('@/ui/AboutModal').then((m) => ({ default: m.AboutModal })));
 import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
 import { Splitter } from '@/ui/Splitter';
@@ -21,8 +23,12 @@ import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
 import { NodeTooltip } from '@/ui/NodeTooltip';
 import { DND_NODE_MIME } from '@/ui/dnd';
 import type { NodeDef } from '@/nodes/NodeDef';
-import { WelcomeModal, Tour } from '@/ui/Onboarding';
 import { hasOnboarded, markOnboarded } from '@/ui/tour';
+
+const WelcomeModal = lazy(() =>
+  import('@/ui/Onboarding').then((m) => ({ default: m.WelcomeModal })),
+);
+const Tour = lazy(() => import('@/ui/Onboarding').then((m) => ({ default: m.Tour })));
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -567,24 +573,26 @@ export function App() {
         )}
       </div>
 
-      {showExport && (
-        <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
-      )}
-      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
-      {showWelcome && (
-        <WelcomeModal
-          onStartTour={() => {
-            markOnboarded();
-            setShowWelcome(false);
-            setTourOpen(true);
-          }}
-          onClose={() => {
-            markOnboarded();
-            setShowWelcome(false);
-          }}
-        />
-      )}
-      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
+      <Suspense fallback={null}>
+        {showExport && (
+          <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
+        )}
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+        {showWelcome && (
+          <WelcomeModal
+            onStartTour={() => {
+              markOnboarded();
+              setShowWelcome(false);
+              setTourOpen(true);
+            }}
+            onClose={() => {
+              markOnboarded();
+              setShowWelcome(false);
+            }}
+          />
+        )}
+        {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

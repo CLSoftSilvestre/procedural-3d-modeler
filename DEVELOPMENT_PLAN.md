@@ -222,6 +222,12 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — About modal + branding
+- **Did:** `ui/AboutModal.tsx` — impactful About dialog (floating glow logo, app name +
+  tagline, Early Access badge, description, credits — **Celso Silvestre** / **Azordev.pt**
+  link, tech chips, year/copy). Header logo+title is now a button that opens it.
+- **Verified:** typecheck, 69 tests, lint, build, dev-boot clean.
+
 ### 2026-06-24 — Layout: resizable + collapsible panels
 - **Did:** `Splitter` (pointer-capture drag divider, x/y) + `useLayout` (localStorage-
   persisted `{leftW,rightW,graphH,leftOpen,rightOpen}`). App body is now flex: drag to

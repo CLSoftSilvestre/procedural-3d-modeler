@@ -10,6 +10,7 @@ import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
 import { ExportPanel } from '@/ui/ExportPanel';
+import { AboutModal } from '@/ui/AboutModal';
 import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
 import { Splitter } from '@/ui/Splitter';
@@ -169,6 +170,7 @@ export function App() {
   const { layout, update } = useLayout();
   const centerRef = useRef<HTMLDivElement>(null);
   const [showExport, setShowExport] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
 
@@ -218,22 +220,24 @@ export function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <div className="app__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path
-              d="M12 2 21 7v10l-9 5-9-5V7z"
-              fill="none"
-              stroke="#6ea8fe"
-              strokeWidth="1.6"
-              strokeLinejoin="round"
-            />
-            <path d="M12 2v20M3 7l9 5 9-5" fill="none" stroke="#6ea8fe" strokeWidth="1.3" opacity="0.6" />
-          </svg>
-        </div>
-        <div className="app__title">
-          <span className="app__brand">Procedural 3D Modeler</span>
-          <span className="app__sub">three.js generator</span>
-        </div>
+        <button className="app__brandbtn" onClick={() => setShowAbout(true)} title="About">
+          <div className="app__logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22">
+              <path
+                d="M12 2 21 7v10l-9 5-9-5V7z"
+                fill="none"
+                stroke="#6ea8fe"
+                strokeWidth="1.6"
+                strokeLinejoin="round"
+              />
+              <path d="M12 2v20M3 7l9 5 9-5" fill="none" stroke="#6ea8fe" strokeWidth="1.3" opacity="0.6" />
+            </svg>
+          </div>
+          <div className="app__title">
+            <span className="app__brand">Procedural 3D Modeler</span>
+            <span className="app__sub">three.js generator</span>
+          </div>
+        </button>
         <Toolbar onExport={() => setShowExport(true)} />
         <span className="app__stats">
           {evaluating && <span className="app__busy">evaluating…</span>}
@@ -373,6 +377,7 @@ export function App() {
       {showExport && (
         <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
       )}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
     </div>
   );
 }

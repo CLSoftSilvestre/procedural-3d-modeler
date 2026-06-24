@@ -19,7 +19,6 @@ export function ParamsPanel() {
 
   return (
     <div className="params">
-      <h3 className="params__title">Parameters</h3>
       {params.length === 0 && (
         <div className="panel__empty">
           No parameters. Click “○ expose” on a node input in the inspector to make it a

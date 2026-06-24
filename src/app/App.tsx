@@ -17,11 +17,16 @@ import { Splitter } from '@/ui/Splitter';
 import { useLayout, clamp } from '@/ui/useLayout';
 import { LightsControl } from '@/ui/LightsControl';
 import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
+import { NodeTooltip } from '@/ui/NodeTooltip';
+import { DND_NODE_MIME } from '@/ui/dnd';
+import type { NodeDef } from '@/nodes/NodeDef';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
+  const select = useStore((s) => s.select);
   const byCategory = useMemo(() => nodeDefsByCategory(), []);
   const [query, setQuery] = useState('');
+  const [hover, setHover] = useState<{ def: NodeDef; anchor: DOMRect } | null>(null);
 
   const q = query.trim().toLowerCase();
   const filtered = useMemo(
@@ -56,17 +61,35 @@ function NodePalette() {
             <button
               key={def.type}
               className="palette__btn"
-              title={def.description ?? def.label}
-              onClick={() =>
-                addNode(def.type, { x: 80 + Math.random() * 120, y: 80 + Math.random() * 120 })
-              }
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData(DND_NODE_MIME, def.type);
+                e.dataTransfer.effectAllowed = 'copy';
+                setHover(null);
+              }}
+              onMouseEnter={(e) => setHover({ def, anchor: e.currentTarget.getBoundingClientRect() })}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => {
+                const id = addNode(def.type, {
+                  x: 80 + Math.random() * 120,
+                  y: 80 + Math.random() * 120,
+                });
+                select(id);
+              }}
             >
-              + {def.label}
+              <span className="palette__plus" aria-hidden="true">
+                +
+              </span>
+              <span className="palette__label">{def.label}</span>
+              <span className="palette__grip" aria-hidden="true" title="Drag onto the canvas">
+                ⋮⋮
+              </span>
             </button>
           ))}
         </div>
       ))}
       {filtered.length === 0 && <div className="panel__empty">No nodes match.</div>}
+      {hover && <NodeTooltip def={hover.def} anchor={hover.anchor} />}
     </div>
   );
 }
@@ -400,8 +423,23 @@ export function App() {
               <div className="app__inspector-top">
                 <Inspector />
               </div>
-              <div className="app__params">
-                <ParamsPanel />
+              <div className={`app__params${layout.paramsOpen ? '' : ' is-collapsed'}`}>
+                <button
+                  className="app__params-head"
+                  onClick={() => update({ paramsOpen: !layout.paramsOpen })}
+                  title={layout.paramsOpen ? 'Collapse parameters' : 'Expand parameters'}
+                >
+                  <Icon name="chevron-right" size={12} />
+                  <span>Parameters</span>
+                  {graph.params.length > 0 && (
+                    <span className="app__params-count">{graph.params.length}</span>
+                  )}
+                </button>
+                {layout.paramsOpen && (
+                  <div className="app__params-body">
+                    <ParamsPanel />
+                  </div>
+                )}
               </div>
             </aside>
           </>

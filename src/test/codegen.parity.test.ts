@@ -70,6 +70,36 @@ describe('codegen parity (generated code === live evaluation)', () => {
     }
   });
 
+  it('primitive built-in transform', () => {
+    // A box positioned/rotated/scaled via its own transform sockets (no Transform node).
+    expectParity(
+      makeGraph(
+        [
+          { id: 'a', type: 'primitive.box', values: { tx: 1.5, ty: -0.5, rz: 45, sx: 2, sz: 0.5 } },
+          { id: 'out', type: 'output.mesh' },
+        ],
+        [edge('e', 'a', 'out')],
+      ),
+    );
+  });
+
+  it('primitive transform is omitted from codegen when at identity', () => {
+    const result = generateModule(
+      makeGraph([{ id: 'a', type: 'primitive.box' }, { id: 'out', type: 'output.mesh' }], [edge('e', 'a', 'out')]),
+    );
+    expect(result.code).not.toContain('applyMatrix4');
+  });
+
+  it('primitive transform is emitted when non-identity', () => {
+    const result = generateModule(
+      makeGraph(
+        [{ id: 'a', type: 'primitive.box', values: { tx: 2 } }, { id: 'out', type: 'output.mesh' }],
+        [edge('e', 'a', 'out')],
+      ),
+    );
+    expect(result.code).toContain('.applyMatrix4(');
+  });
+
   it('transform', () => {
     expectParity(
       makeGraph(

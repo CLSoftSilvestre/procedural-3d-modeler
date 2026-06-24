@@ -6,10 +6,18 @@ export interface LayoutState {
   graphH: number;
   leftOpen: boolean;
   rightOpen: boolean;
+  paramsOpen: boolean;
 }
 
 const KEY = 'p3m.ui.v1';
-const DEFAULTS: LayoutState = { leftW: 190, rightW: 290, graphH: 340, leftOpen: true, rightOpen: true };
+const DEFAULTS: LayoutState = {
+  leftW: 190,
+  rightW: 290,
+  graphH: 340,
+  leftOpen: true,
+  rightOpen: true,
+  paramsOpen: true,
+};
 
 export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 

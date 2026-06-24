@@ -5,12 +5,14 @@ import {
   Controls,
   Handle,
   Position,
+  useReactFlow,
   type Connection,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeProps,
   type NodeChange,
 } from '@xyflow/react';
+import { DND_NODE_MIME } from './dnd';
 import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
@@ -74,6 +76,8 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const removeNode = useStore((s) => s.removeNode);
   const removeEdge = useStore((s) => s.removeEdge);
   const select = useStore((s) => s.select);
+  const addNode = useStore((s) => s.addNode);
+  const { screenToFlowPosition } = useReactFlow();
 
   const nodeTypes = useMemo(() => ({ proc: GraphNodeView }), []);
 
@@ -126,6 +130,25 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
     [addEdge],
   );
 
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes(DND_NODE_MIME)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      const type = e.dataTransfer.getData(DND_NODE_MIME);
+      if (!type) return;
+      e.preventDefault();
+      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      const id = addNode(type, position);
+      select(id);
+    },
+    [addNode, screenToFlowPosition, select],
+  );
+
   return (
     <ReactFlow
       nodes={rfNodes}
@@ -136,6 +159,8 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       onNodesDelete={(nodes) => nodes.forEach((n) => removeNode(n.id))}
       onEdgesDelete={(edges) => edges.forEach((e) => removeEdge(e.id))}
       onPaneClick={() => select(null)}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       deleteKeyCode={['Backspace', 'Delete']}
       fitView
       proOptions={{ hideAttribution: true }}

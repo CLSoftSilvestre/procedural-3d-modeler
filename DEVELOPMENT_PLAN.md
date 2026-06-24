@@ -240,6 +240,36 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — UX: collapsible Parameters area in the right panel
+- The right panel's **Parameters** section is now collapsible so the **Properties** (inspector)
+  area can take the full height. Added `paramsOpen` to `useLayout` (persisted); the Parameters
+  sub-section gained a clickable header (chevron + title + live param count) that toggles its
+  body. When collapsed, `.app__params` becomes `flex:0 0 auto` so the inspector grows to fill.
+- Moved the "Parameters" title out of `ParamsPanel` into the new toggle header (no duplicate).
+- Typecheck/lint/build clean.
+
+### 2026-06-24 — UX: per-primitive transforms, palette drag-drop, visual tooltips
+- **Per-primitive transform.** Every primitive now carries its own position/rotation°/scale
+  (sockets tx..sz), so basic placement no longer needs a separate Transform node (which stays
+  for transforming *combined* geometry like booleans/merges). New shared module
+  `src/nodes/transformShared.ts` (`transformInputs`, `applyTransform`, `transformStatements`,
+  `transformIsTrivial`) — the Transform modifier and the primitive factory both use it, so
+  eval/codegen parity is preserved by construction. Codegen **omits** `applyMatrix4` when the
+  transform is at identity (clean exports); emits it otherwise. +3 parity/codegen tests.
+- **Inspector grouping.** Added optional `SocketSpec.group`; the Inspector renders grouped
+  inputs in a collapsible `<details>` section (Transform is collapsed by default to keep the
+  panel tidy). Field rendering extracted to `InspectorField`.
+- **Palette drag-and-drop.** Palette items are now draggable onto the canvas (drop computes the
+  flow position via `screenToFlowPosition`); clicking the `+` still adds. Shared MIME in
+  `src/ui/dnd.ts`. Empty-state overlay already had `pointer-events:none`, so drops pass through.
+- **Visual hover tooltip.** New `NodeThumbnail` (inline-SVG line art per primitive + per-category
+  glyph, themed by category accent) and `NodeTooltip` (portal card: thumbnail, category chip,
+  description, Inputs/Properties chips, built-in-transform note).
+- **Decisions:** transform scoped to primitives only (generators/curves could adopt
+  `transformInputs` later); thumbnails are inline SVG (no image assets to ship); triviality
+  detected by comparing `inputExpr` to the default literal so params/edges always emit.
+- 87/87 tests green; typecheck/lint/build clean. **Next:** Phase 7 (launch prep).
+
 ### 2026-06-24 — Fix: numeric inputs lost their inspector controls
 - **Reported:** Time's Speed (and other numeric inputs) had no editable control — only a
   connection handle.

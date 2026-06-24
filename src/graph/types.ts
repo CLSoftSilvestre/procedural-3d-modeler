@@ -49,6 +49,9 @@ export interface SocketSpec {
   type: SocketType;
   /** Default literal value when no edge is connected (not used for geometry inputs). */
   default?: LiteralValue;
+  /** Optional inspector section this input belongs to (e.g. "Transform"). Inputs sharing
+   *  a group are rendered together in a collapsible section; ungrouped inputs come first. */
+  group?: string;
   /** UI hints for the inspector control. */
   control?: {
     kind: 'slider' | 'number' | 'vector' | 'checkbox' | 'text' | 'color' | 'select';

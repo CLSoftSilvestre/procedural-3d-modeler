@@ -3,6 +3,7 @@ import { fromBufferGeometry } from '@/geometry/GeometryData';
 import type { SocketSpec } from '@/graph/types';
 import type { NodeDef } from '../NodeDef';
 import { num } from '../helpers';
+import { applyTransform, transformInputs, transformStatements } from '../transformShared';
 
 export interface PrimitiveParam {
   id: string;
@@ -39,6 +40,9 @@ export function makePrimitive(config: PrimitiveConfig): NodeDef {
     default: p.default,
     control: { kind: 'slider', min: p.min, max: p.max, step: p.step ?? 0.01 },
   }));
+  // Every primitive can be placed/oriented/scaled on its own — no separate Transform
+  // node needed for basic positioning. These live in a collapsible "Transform" group.
+  inputs.push(...transformInputs('Transform'));
 
   return {
     type: config.type,
@@ -57,14 +61,18 @@ export function makePrimitive(config: PrimitiveConfig): NodeDef {
       const geom = config.build(args);
       const data = fromBufferGeometry(geom);
       geom.dispose();
-      return data;
+      // Apply the primitive's own transform (no-op when left at identity).
+      return applyTransform(data, resolved);
     },
 
     codegen(ctx) {
       const v = ctx.uniqueVar(config.className.replace(/Geometry$/, '').toLowerCase());
       const args = config.params.map((p) => ctx.inputExpr(p.id)).join(', ');
       return {
-        statements: [`const ${v} = new THREE.${config.className}(${args});`],
+        statements: [
+          `const ${v} = new THREE.${config.className}(${args});`,
+          ...transformStatements(ctx, v),
+        ],
         outputVar: v,
         imports: ['three'],
       };

@@ -1,6 +1,6 @@
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
-import { isConnectableType, type LiteralValue } from '@/graph/types';
+import { isObjectType, type LiteralValue } from '@/graph/types';
 import { ValueControl } from './ValueControl';
 import { MaterialPresetPicker } from './MaterialPresetPicker';
 import { Icon } from './Icon';
@@ -21,7 +21,8 @@ export function Inspector() {
   }
 
   const def = requireNodeDef(node.type);
-  const editable = def.inputs.filter((s) => !isConnectableType(s.type));
+  // Scalar inputs get inline controls; object inputs (geometry/material/shape) are edge-only.
+  const editable = def.inputs.filter((s) => !isObjectType(s.type));
 
   return (
     <div className="inspector">

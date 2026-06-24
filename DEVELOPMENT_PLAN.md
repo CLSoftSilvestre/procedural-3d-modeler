@@ -240,6 +240,16 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Fix: numeric inputs lost their inspector controls
+- **Reported:** Time's Speed (and other numeric inputs) had no editable control — only a
+  connection handle.
+- **Cause:** making `number` connectable (for value nodes) meant the Inspector's
+  `!isConnectableType` filter excluded ALL number inputs.
+- **Fix:** split predicates — `isObjectType` (geometry/material/shape = edge-only, no inline
+  control) vs `isConnectableType` (adds `number`). Inspector now filters on `isObjectType`,
+  so numbers show a control when unconnected and "driven by a connected node" when wired.
+  +3 predicate tests. 84/84 green.
+
 ### 2026-06-24 — Procedural animation (Time node + playback + animated export)
 - **Did:** time clock end-to-end. `EvalContext.time` + `NodeDef.timeDependent`; engine
   `evaluateGraph(...,time)` with **time only in the hash for time-dependent nodes** (static

@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phases 0–6 done + procedural animation. Ready for Phase 7 (launch prep).
+- **Status:** Phases 0–6 done + procedural animation. Phase 7 (launch prep) in progress.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 7 — launch prep next.
+- **Current phase:** Phase 7 — launch prep (started: example library expanded).
 
 ---
 
@@ -173,7 +173,9 @@
 
 ## Phase 7 — Launch readiness (→ M6)  `[ ]`
 - [ ] Onboarding flow + interactive tutorial
-- [ ] Example/template library (downloadable starter graphs)
+- [~] Example/template library — 9 built-in starter graphs (Examples menu); any can be
+      Saved to JSON. (Faceted Gem, Hollow Pipe, Capsule, Twisted Column, Spinning Propeller +
+      the originals.) TODO: thumbnails in the menu, importable community templates.
 - [ ] Versioned graph format + migration strategy
 - [ ] Telemetry (opt-in), error reporting
 - [ ] Packaging/deploy (hosting, PWA/offline), billing/licensing hooks
@@ -239,6 +241,19 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 7 (start): expanded example/template library
+- Added 5 new built-in examples (now 9 total), each verified end-to-end by `examples.test.ts`
+  (non-trivial geometry + codegen↔eval parity): **Faceted Gem** (two 8/16-facet cones unioned),
+  **Hollow Pipe** (cylinder − cylinder), **Capsule** (cylinder + 2 spheres unioned, placed via
+  built-in transforms), **Twisted Column** (segmented box + Twist), **Spinning Propeller**
+  (tapered blade → radial Array → union with hub → Time→Expression→Transform spin; animated).
+- They double as a showcase of the new per-primitive transforms, booleans, arrays, deformers,
+  value nodes and animation.
+- Note: the Gem at 8 facets is geometrically a 16-tri solid (correct but below the test's
+  >50-tri "non-trivial" bar) — bumped to 16 radial × 2–3 height segments to keep it faceted
+  yet substantial.
+- 97/97 tests; typecheck/lint/build clean. **Next:** onboarding/tutorial or graph versioning.
 
 ### 2026-06-24 — UX: collapsible Parameters area in the right panel
 - The right panel's **Parameters** section is now collapsible so the **Properties** (inspector)

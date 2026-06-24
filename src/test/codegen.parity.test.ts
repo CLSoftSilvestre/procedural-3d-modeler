@@ -65,7 +65,21 @@ describe('codegen parity (generated code === live evaluation)', () => {
   });
 
   it('all primitives', () => {
-    for (const type of ['primitive.sphere', 'primitive.cylinder', 'primitive.cone', 'primitive.torus', 'primitive.plane']) {
+    for (const type of [
+      'primitive.sphere',
+      'primitive.cylinder',
+      'primitive.cone',
+      'primitive.torus',
+      'primitive.plane',
+      'primitive.capsule',
+      'primitive.circle',
+      'primitive.ring',
+      'primitive.torusKnot',
+      'primitive.tetrahedron',
+      'primitive.octahedron',
+      'primitive.dodecahedron',
+      'primitive.icosahedron',
+    ]) {
       expectParity(makeGraph([{ id: 'a', type }, { id: 'out', type: 'output.mesh' }], [edge('e', 'a', 'out')]));
     }
   });
@@ -141,11 +155,12 @@ describe('codegen parity (generated code === live evaluation)', () => {
     );
   });
 
-  it('deformers (twist, taper, displace)', () => {
+  it('deformers (twist, taper, displace, bend)', () => {
     const cases = [
       { type: 'deformer.twist', values: { axis: 'y', angle: 60 } },
       { type: 'deformer.taper', values: { axis: 'y', endScale: 0.3 } },
       { type: 'deformer.displace', values: { strength: 0.4, frequency: 2, seed: 9 } },
+      { type: 'deformer.bend', values: { axis: 'y', angle: 40 } },
     ];
     for (const c of cases) {
       expectParity(

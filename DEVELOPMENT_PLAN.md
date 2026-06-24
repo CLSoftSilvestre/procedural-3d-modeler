@@ -253,6 +253,16 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — More geometry: 8 primitives + Bend deformer
+- New primitives via the existing factory (all inherit built-in transform): **Capsule, Circle,
+  Ring, Torus Knot, Tetrahedron, Octahedron, Dodecahedron, Icosahedron** (6 → **14** primitives).
+  Added a `detail()` param helper (LOD-reduced like segment counts) for the polyhedra.
+- New **Bend** deformer: like Twist but rotates about a perpendicular axis (cyclic x→y→z→x), so
+  geometry curls into an arc; eval via `deformGeometry`, codegen mirrors the loop (parity-tested).
+- Registry now **31** nodes. Parity tests cover every new primitive + bend; node-count test updated.
+- All checks clean (109 tests). Deferred (need more than the numeric factory): Tube (path),
+  3D Text (font asset), Bezier/spline curve, Subdivide (no core modifier).
+
 ### 2026-06-24 — Viewport toolbar: icon-only buttons
 - Wireframe / Grid / Lights / PNG are now **icon-only** (with `title` + `aria-label` tooltips):
   added `wireframe`, `grid`, `sun` icons; PNG reuses `camera`. New `.viewport__iconbtn` style

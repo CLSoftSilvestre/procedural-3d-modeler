@@ -12,6 +12,8 @@ import { ParamsPanel } from '@/ui/ParamsPanel';
 import { ExportPanel } from '@/ui/ExportPanel';
 import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
+import { Splitter } from '@/ui/Splitter';
+import { useLayout, clamp } from '@/ui/useLayout';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -164,6 +166,8 @@ export function App() {
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
   const loadGraph = useStore((s) => s.loadGraph);
+  const { layout, update } = useLayout();
+  const centerRef = useRef<HTMLDivElement>(null);
   const [showExport, setShowExport] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
@@ -239,13 +243,31 @@ export function App() {
 
       {notice && <div className={`app__notice app__notice--${notice.kind}`}>{notice.message}</div>}
 
-      <div className="app__body">
-        <aside className="app__palette">
-          <NodePalette />
-        </aside>
+      <div className="app__body" ref={centerRef}>
+        {layout.leftOpen ? (
+          <>
+            <aside className="app__palette" style={{ width: layout.leftW }}>
+              <div className="panel-head">
+                <span>Nodes</span>
+                <button className="panel-head__btn" title="Collapse" onClick={() => update({ leftOpen: false })}>
+                  <Icon name="chevron-left" size={14} />
+                </button>
+              </div>
+              <NodePalette />
+            </aside>
+            <Splitter
+              axis="x"
+              onDrag={(dx) => update({ leftW: clamp(layout.leftW + dx, 140, 360) })}
+            />
+          </>
+        ) : (
+          <button className="rail rail--left" title="Show nodes" onClick={() => update({ leftOpen: true })}>
+            <Icon name="chevron-right" size={14} />
+          </button>
+        )}
 
         <main className="app__center">
-          <section className="app__graph">
+          <section className="app__graph" style={{ height: layout.graphH, flex: '0 0 auto' }}>
             <ReactFlowProvider>
               <GraphEditor errorNodeIds={errorNodeIds} />
             </ReactFlowProvider>
@@ -271,6 +293,13 @@ export function App() {
               </div>
             )}
           </section>
+          <Splitter
+            axis="y"
+            onDrag={(dy) => {
+              const h = centerRef.current?.clientHeight ?? 800;
+              update({ graphH: clamp(layout.graphH + dy, 140, h - 160) });
+            }}
+          />
           <section className="app__viewport">
             <div className="viewport__toolbar">
               <button
@@ -313,14 +342,32 @@ export function App() {
           </section>
         </main>
 
-        <aside className="app__inspector">
-          <div className="app__inspector-top">
-            <Inspector />
-          </div>
-          <div className="app__params">
-            <ParamsPanel />
-          </div>
-        </aside>
+        {layout.rightOpen ? (
+          <>
+            <Splitter
+              axis="x"
+              onDrag={(dx) => update({ rightW: clamp(layout.rightW - dx, 200, 480) })}
+            />
+            <aside className="app__inspector" style={{ width: layout.rightW }}>
+              <div className="panel-head">
+                <span>Properties</span>
+                <button className="panel-head__btn" title="Collapse" onClick={() => update({ rightOpen: false })}>
+                  <Icon name="chevron-right" size={14} />
+                </button>
+              </div>
+              <div className="app__inspector-top">
+                <Inspector />
+              </div>
+              <div className="app__params">
+                <ParamsPanel />
+              </div>
+            </aside>
+          </>
+        ) : (
+          <button className="rail rail--right" title="Show properties" onClick={() => update({ rightOpen: true })}>
+            <Icon name="chevron-left" size={14} />
+          </button>
+        )}
       </div>
 
       {showExport && (

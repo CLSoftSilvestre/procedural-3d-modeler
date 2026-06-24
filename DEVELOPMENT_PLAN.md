@@ -149,6 +149,10 @@
 - [x] Viewport tools: **wireframe / grid toggles + stats** overlay. [ ] transform gizmos.
 - [x] Autosave + local project storage (`state/persistence.ts`) + **New** button.
       [ ] recent files.
+- [x] **Resizable / collapsible layout** — `ui/Splitter.tsx` (pointer-capture drag) +
+      `ui/useLayout.ts` (persisted sizes/visibility): drag-resize both side panels and the
+      graph↔viewport split; collapse each side panel to a reopen rail. Layout persists in
+      localStorage.
 - [x] Theming/UI polish — SVG icon set (`ui/Icon.tsx`) replacing broken emoji glyphs;
       dark-themed React Flow controls/edges/handles; **material presets library**
       (`material/presets.ts`) via an Inspector preset picker (+ `setNodeValues`);
@@ -217,6 +221,16 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Layout: resizable + collapsible panels
+- **Did:** `Splitter` (pointer-capture drag divider, x/y) + `useLayout` (localStorage-
+  persisted `{leftW,rightW,graphH,leftOpen,rightOpen}`). App body is now flex: drag to
+  resize the left (Nodes) and right (Properties) panels and the graph↔viewport vertical
+  split; collapse either side panel to a slim reopen rail (panel headers got a chevron).
+  Center is flex-column (graph fixed height + draggable Y splitter + viewport fills).
+  Simplified responsive rules (panels hide < 820px; reopen via rails).
+- **Verified:** typecheck, 69 tests, lint, build, dev-boot clean.
+- **Next:** Phase-5 deferred (Expression + seeded Random nodes).
 
 ### 2026-06-24 — Visual polish: node colors, branding, empty state, responsive
 - **Did:** category-colored node headers + glow dot (`ui/categoryColors.ts`; gradient

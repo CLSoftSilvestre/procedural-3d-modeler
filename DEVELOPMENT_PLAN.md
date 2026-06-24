@@ -253,6 +253,21 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Editor & viewport UX (batch 3): node comments / frames
+- Added decorative **notes/frames**: a new optional `Graph.notes: GraphNote[]` (id/text/position/
+  width/height/color) that the engine, codegen, topo and validate fully ignore. Store actions
+  `addNote`/`updateNote`/`removeNote` (history-coalesced text/drag/resize). Defaulted to `[]` on
+  load (serialize) and in `createEmptyGraph`; round-trip + legacy-absent test added.
+- `NoteNode` (React Flow custom node): resizable (`NodeResizer`), editable title, cycle-color
+  button, delete; **dragged by its title bar** and rendered **behind** real nodes (zIndex/order)
+  so it frames them without intercepting their interactions. Added via the right-click menu
+  (“＋ Note / frame”) at the cursor.
+- Change routing in `onNodesChange` distinguishes note ids (position→updateNote, dimensions→size,
+  remove→removeNote) from real nodes. Selecting a note doesn't break the Inspector (it just shows
+  the empty state). Kept the field **optional** so existing graph literals/tests need no changes.
+- 106 tests; all checks clean. **Next:** transform gizmo (bind to a selected primitive's
+  built-in transform sockets).
+
 ### 2026-06-24 — Editor & viewport UX (batch 2): minimap toggle + view gizmo
 - **Minimap toggle:** a `ControlButton` (map icon) next to the zoom controls shows/hides the
   minimap; state persisted (`p3m.minimap.v1`), active state styled in accent. Scoped CSS so the

@@ -93,12 +93,27 @@ export interface ExposedParam {
   socketId: string;
 }
 
+/**
+ * A decorative comment / frame placed on the canvas to annotate or group nodes. Purely
+ * visual — ignored by the evaluation engine and code generator.
+ */
+export interface GraphNote {
+  id: string;
+  text: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  color: string;
+}
+
 export interface Graph {
   version: string;
   nodes: GraphNode[];
   edges: Edge[];
   params: ExposedParam[];
   outputNodeId: string | null;
+  /** Optional canvas annotations (comments/frames). Absent in older saved files. */
+  notes?: GraphNote[];
 }
 
 export const GRAPH_VERSION = '0.2.0';
@@ -110,5 +125,6 @@ export function createEmptyGraph(): Graph {
     edges: [],
     params: [],
     outputNodeId: null,
+    notes: [],
   };
 }

@@ -26,6 +26,7 @@ import { getNodeDef, requireNodeDef } from '@/nodes/registry';
 import { isConnectableType } from '@/graph/types';
 import { categoryColor } from './categoryColors';
 import { GraphContextMenu } from './GraphContextMenu';
+import { NoteNode } from './NoteNode';
 import { Icon } from './Icon';
 
 const MINIMAP_KEY = 'p3m.minimap.v1';
@@ -149,6 +150,9 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const removeEdge = useStore((s) => s.removeEdge);
   const select = useStore((s) => s.select);
   const addNode = useStore((s) => s.addNode);
+  const addNote = useStore((s) => s.addNote);
+  const updateNote = useStore((s) => s.updateNote);
+  const removeNote = useStore((s) => s.removeNote);
   const { screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<{ x: number; y: number; flowX: number; flowY: number } | null>(
     null,
@@ -172,21 +176,35 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
     });
   }, []);
 
-  const nodeTypes = useMemo(() => ({ proc: GraphNodeView }), []);
+  const nodeTypes = useMemo(() => ({ proc: GraphNodeView, note: NoteNode }), []);
   const edgeTypes = useMemo(() => ({ deletable: DeletableEdge }), []);
+  const noteIds = useMemo(() => new Set((graph.notes ?? []).map((n) => n.id)), [graph.notes]);
 
-  const rfNodes: RFNode[] = useMemo(
-    () =>
-      graph.nodes.map((n) => ({
-        id: n.id,
-        type: 'proc',
-        position: n.position,
-        // Reflect selection so React Flow knows what to delete on Backspace/Delete.
-        selected: n.id === selectedNodeId,
-        data: { type: n.type, error: errorNodeIds?.has(n.id) ?? false },
-      })),
-    [graph.nodes, selectedNodeId, errorNodeIds],
-  );
+  const rfNodes: RFNode[] = useMemo(() => {
+    // Notes first so they render behind the real nodes (acting as frames).
+    const noteNodes: RFNode[] = (graph.notes ?? []).map((n) => ({
+      id: n.id,
+      type: 'note',
+      position: n.position,
+      width: n.width,
+      height: n.height,
+      style: { width: n.width, height: n.height },
+      selected: n.id === selectedNodeId,
+      dragHandle: '.note__bar',
+      zIndex: 0,
+      data: { text: n.text, color: n.color },
+    }));
+    const procNodes: RFNode[] = graph.nodes.map((n) => ({
+      id: n.id,
+      type: 'proc',
+      position: n.position,
+      // Reflect selection so React Flow knows what to delete on Backspace/Delete.
+      selected: n.id === selectedNodeId,
+      zIndex: 1,
+      data: { type: n.type, error: errorNodeIds?.has(n.id) ?? false },
+    }));
+    return [...noteNodes, ...procNodes];
+  }, [graph.nodes, graph.notes, selectedNodeId, errorNodeIds]);
 
   const rfEdges: RFEdge[] = useMemo(
     () =>
@@ -204,12 +222,20 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       for (const c of changes) {
-        if (c.type === 'position' && c.position) moveNode(c.id, c.position);
-        else if (c.type === 'remove') removeNode(c.id);
-        else if (c.type === 'select' && c.selected) select(c.id);
+        if (c.type === 'position' && c.position) {
+          if (noteIds.has(c.id)) updateNote(c.id, { position: c.position });
+          else moveNode(c.id, c.position);
+        } else if (c.type === 'dimensions' && noteIds.has(c.id) && c.dimensions) {
+          updateNote(c.id, { width: c.dimensions.width, height: c.dimensions.height });
+        } else if (c.type === 'remove') {
+          if (noteIds.has(c.id)) removeNote(c.id);
+          else removeNode(c.id);
+        } else if (c.type === 'select' && c.selected) {
+          select(c.id);
+        }
       }
     },
-    [moveNode, removeNode, select],
+    [moveNode, removeNode, select, noteIds, updateNote, removeNote],
   );
 
   const onEdgesChange = useCallback(
@@ -307,6 +333,11 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
         onClose={() => setMenu(null)}
         onPick={(type) => {
           const id = addNode(type, { x: menu.flowX, y: menu.flowY });
+          select(id);
+          setMenu(null);
+        }}
+        onAddNote={() => {
+          const id = addNote({ x: menu.flowX, y: menu.flowY });
           select(id);
           setMenu(null);
         }}

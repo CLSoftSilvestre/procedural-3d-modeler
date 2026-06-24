@@ -12,11 +12,13 @@ export function GraphContextMenu({
   x,
   y,
   onPick,
+  onAddNote,
   onClose,
 }: {
   x: number;
   y: number;
   onPick: (type: string) => void;
+  onAddNote: () => void;
   onClose: () => void;
 }) {
   const byCategory = useMemo(() => nodeDefsByCategory(), []);
@@ -76,6 +78,9 @@ export function GraphContextMenu({
         }}
       />
       <div className="ctxmenu__list">
+        <button className="ctxmenu__item ctxmenu__item--note" onClick={onAddNote}>
+          ＋ Note / frame
+        </button>
         {filtered.map(([category, defs]) => (
           <div className="ctxmenu__group" key={category}>
             <span className="ctxmenu__cat">

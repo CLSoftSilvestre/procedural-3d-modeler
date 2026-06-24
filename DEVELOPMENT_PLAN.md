@@ -253,6 +253,14 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Export polish: syntax highlighting
+- Added a **zero-dependency** highlighter (`src/codegen/highlight.ts`): tokenizes comments/
+  strings/numbers/keywords/Capitalized-types and wraps them in `<span class="hl-*">` (escaped
+  HTML, injected via `dangerouslySetInnerHTML`). Export code view is now colored (Tokyo-Night-ish
+  palette in CSS). +3 tests (118 total). All checks clean.
+- (Re: Prettier — it formats, it doesn't color; on tidy codegen the change is subtle, mainly
+  long-line wrapping like Transform matrix calls + quote normalization.)
+
 ### 2026-06-24 — Export polish: Prettier formatting
 - The Export panel now pretty-prints the generated three.js / R3F code with Prettier
   (`src/codegen/format.ts`, parser `babel-ts` so it handles vanilla JS + R3F JSX). Copy/Download

@@ -1310,8 +1310,25 @@ body,
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   line-height: 1.5;
-  color: #d6e0ff;
+  color: #c8d3f5;
   white-space: pre;
+}
+/* syntax highlighting (Export code view) */
+.modal__code .hl-keyword {
+  color: #c099ff;
+}
+.modal__code .hl-string {
+  color: #c3e88d;
+}
+.modal__code .hl-number {
+  color: #ff966c;
+}
+.modal__code .hl-type {
+  color: #86e1fc;
+}
+.modal__code .hl-comment {
+  color: #6c7393;
+  font-style: italic;
 }
 .modal__error {
   padding: 16px;

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/state/store';
 import { generateModule, type CodegenTarget } from '@/codegen/generate';
 import { formatCode } from '@/codegen/format';
+import { highlightCode } from '@/codegen/highlight';
 import { downloadGLTF } from '@/export/gltf';
 import { exportSTL, exportOBJ, downloadBlob } from '@/export/mesh';
 import type { GeometryData } from '@/geometry/GeometryData';
@@ -135,7 +136,10 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
           (result.error ? (
             <div className="modal__error">⚠ {result.error}</div>
           ) : (
-            <pre className="modal__code">{codeText}</pre>
+            <pre
+              className="modal__code"
+              dangerouslySetInnerHTML={{ __html: highlightCode(codeText) }}
+            />
           ))}
 
         {tab === 'gltf' && (

@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** M5 reached + R3F export target done. Remaining Phase-5 extras: Expression/Random nodes.
+- **Status:** Phase 5 COMPLETE (params, R3F, Expression + Random) + M5 polish. Ready for Phase 7.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 5 extras (Expression + Random nodes) → then Phase 7 launch prep.
+- **Current phase:** Between phases — Phase 7 (launch prep) or backlog/animation next.
 
 ---
 
@@ -124,15 +124,20 @@
       includes param values (so dragging a param re-evals correctly, worker path).
 - [x] Codegen emits `createModel(params = { … })` honoring exposed params (`params.<name>`
       references); `runGenerated` accepts overrides; parity + override tests green.
-- [ ] Expression nodes (Monaco) referencing params; seeded random node
+- [x] **Expression** node (formula of a, b, Math → number) + **seeded Random** node
+      (deterministic value in [min,max]). Enabled by making **`number` sockets
+      connectable** so value nodes drive scalar inputs; added `CodegenContext.rawInput`
+      (emits the Expression formula raw, not quoted) and `randomUnit(seed)` shared by
+      eval + codegen. Inspector shows "driven by a connected node" for wired inputs.
+      _(Plain text formula field for now; Monaco is optional future polish.)_
 - [x] Export target D (graph JSON) — save/load. [x] **Target B (R3F)** — `generateModule`
       gains `target: 'vanilla' | 'r3f'`; R3F emits a `<Model props>` component with a
       `useMemo` building `{geometry, material}` and a `<mesh>`, param props with defaults
       and a value-keyed deps array. Shares the exact build statements with vanilla
       (`functionBody` identical), so geometry is parity-correct by construction.
 - **Exit criteria (M4):** ✅ exposed params drive the viewport live and the exported
-  `createModel(params)` is runtime-parameterized (proven: override test reproduces an
-  eval with that value). Expression nodes + R3F target are the remaining Phase-5 extras.
+  `createModel(params)` is runtime-parameterized. **Phase 5 fully complete** (params, R3F
+  target, Expression + Random nodes).
 
 ## Phase 6 — Commercial polish (→ M5)  `[~]`
 - [x] Performance: **LOD preview-while-editing** — `quality` ('preview'|'full') threaded
@@ -196,11 +201,12 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Phase 5 extras (remaining):** Expression node (formula referencing params/inputs →
-   number) + seeded Random node (deterministic value source). Both are value-producing
-   nodes feeding scalar inputs — needs number sockets to be connectable (extend
-   `isConnectableType`/handles or a dedicated value-wiring path) — design first.
-2. Phase 6 remainder (optional polish): transform gizmos, node groups/comments, recent
+1. **Procedural animation** (backlog → its own milestone): a `time` input + param drivers
+   (sin/linear/noise over time) building on the now-complete Value nodes + params; viewport
+   playback; export `createModel(params, time)` / R3F `useFrame`. (Discussed with user.)
+2. **Phase 7 — launch prep:** onboarding/tutorial, more example templates, versioned-graph
+   migration, telemetry (opt-in), deploy/PWA, landing page.
+3. Phase 6 remainder (optional polish): transform gizmos, node groups/comments, recent
    files, theming/responsive/a11y pass, full user docs, worker pool for huge graphs.
 3. Codegen polish: Prettier formatting (prettier/standalone); winding-flip in Mirror
    codegen; tree-shakeable named three imports option.
@@ -221,6 +227,24 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 5 complete: Expression + Random value nodes
+- **Did:** **Random** (`value.random` — deterministic [min,max] from seed) and
+  **Expression** (`value.expression` — `a`,`b`,`Math` formula → number) nodes in a new
+  **Value** category. Made **`number` sockets connectable** (`isConnectableType`) so value
+  nodes drive scalar inputs — engine/codegen already resolve edges generically, so this
+  was the key unlock. Added `randomUnit(seed)` (shared by eval + the Random codegen IIFE,
+  parity-guaranteed) and `CodegenContext.rawInput` (emits the Expression formula raw, not
+  quoted). Inspector shows "← driven by a connected node" + hides control/expose for wired
+  inputs; number handles are lavender; Value category colored.
+- **Tests:** +5 (random value-in-range, random→input parity, expression a*b+1, raw-formula
+  codegen parity, invalid-formula→0 no-crash). 74/74 green.
+- **Verified:** typecheck, 74 tests, lint, build, dev-boot clean.
+- **Decisions/notes:** plain-text formula field (Monaco deferred as optional polish);
+  invalid formulas return 0 rather than throwing (no red-flicker while typing). This
+  **completes Phase 5** and lays the groundwork for procedural animation (a `time` input +
+  these value nodes).
+- **Next:** procedural animation milestone, or Phase 7 launch prep.
 
 ### 2026-06-24 — About modal + branding
 - **Did:** `ui/AboutModal.tsx` — impactful About dialog (floating glow logo, app name +

@@ -1038,6 +1038,9 @@ body,
 .handle--shape {
   background: #7ddc8a !important;
 }
+.handle--number {
+  background: #c8b6ff !important;
+}
 .inspector__field input[type='color'] {
   width: 48px;
   height: 26px;

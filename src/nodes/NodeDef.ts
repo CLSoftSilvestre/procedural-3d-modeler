@@ -1,5 +1,5 @@
 import type { GeometryData } from '@/geometry/GeometryData';
-import type { SocketSpec, SocketValue } from '@/graph/types';
+import type { LiteralValue, SocketSpec, SocketValue } from '@/graph/types';
 
 /**
  * NodeDef — the plugin contract every node implements.
@@ -38,8 +38,11 @@ export interface CodeFragment {
 export interface CodegenContext {
   /** Allocate a unique, readable variable name, e.g. uniqueVar('box') -> 'box1'. */
   uniqueVar: (hint: string) => string;
-  /** For an input socket: the upstream output var name, or a literal expression. */
+  /** For an input socket: the upstream output var name, or a rendered literal expression. */
   inputExpr: (socketId: string) => string;
+  /** The RAW literal value of an input (unquoted) — for inputs that are code, e.g. an
+   *  Expression node's formula. Returns undefined if the socket is edge-connected. */
+  rawInput: (socketId: string) => LiteralValue | undefined;
 }
 
 export interface NodeDef {

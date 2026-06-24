@@ -28,9 +28,10 @@ export type SocketValue =
   | boolean
   | string;
 
-/** Socket types that carry complex objects over edges (rendered with a connection handle). */
+/** Socket types that can be wired with edges (rendered with a connection handle).
+ *  `number` is included so value nodes (Random, Expression) can drive scalar inputs. */
 export function isConnectableType(type: SocketType): boolean {
-  return type === 'geometry' || type === 'material' || type === 'shape';
+  return type === 'geometry' || type === 'material' || type === 'shape' || type === 'number';
 }
 
 /** Plain literal values that can be stored on a node and edited in the inspector. */

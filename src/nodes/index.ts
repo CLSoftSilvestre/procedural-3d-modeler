@@ -12,6 +12,8 @@ import { starNode } from './curves/star';
 import { extrudeNode } from './generators/extrude';
 import { latheNode } from './generators/lathe';
 import { materialNode } from './material/material';
+import { randomNode } from './value/random';
+import { expressionNode } from './value/expression';
 import { outputNode } from './output/output';
 
 let registered = false;
@@ -33,6 +35,8 @@ export function registerBuiltinNodes(): void {
   registerNode(extrudeNode);
   registerNode(latheNode);
   registerNode(materialNode);
+  registerNode(randomNode);
+  registerNode(expressionNode);
   registerNode(outputNode);
 }
 

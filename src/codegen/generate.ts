@@ -83,6 +83,12 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     const ctx: CodegenContext = {
       uniqueVar,
       inputExpr: (socketId) => exprFor(nodeId, socketId),
+      rawInput: (socketId) => {
+        const edge = graph.edges.find((e) => e.target === nodeId && e.targetSocket === socketId);
+        if (edge) return undefined;
+        const socket = def.inputs.find((s) => s.id === socketId);
+        return node.values[socketId] ?? socket?.default;
+      },
     };
     const frag = def.codegen(ctx);
     if (frag.statements.length) statements.push(...frag.statements);

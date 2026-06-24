@@ -7,6 +7,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Deformers: '#f78c6c',
   Booleans: '#ff5370',
   Material: '#f2c14e',
+  Value: '#c8b6ff',
   Output: '#9aa0ad',
 };
 

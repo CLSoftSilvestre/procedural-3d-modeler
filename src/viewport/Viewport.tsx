@@ -4,23 +4,34 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { GeometryData } from '@/geometry/GeometryData';
 import { toBufferGeometry } from '@/geometry/GeometryData';
 import { defaultMaterialSpec, toThreeMaterial, type MaterialSpec } from '@/material/MaterialData';
+import { DEFAULT_LIGHTING, type Lighting } from './lighting';
 
 interface ViewportProps {
   geometry: GeometryData | null;
   material: MaterialSpec | null;
   wireframe?: boolean;
   showGrid?: boolean;
+  lighting?: Lighting;
 }
 
 /**
  * three.js viewport. Owns the scene/camera/renderer imperatively; React only feeds it
  * the evaluated geometry. We dogfood three.js here — it is the target runtime.
  */
-export function Viewport({ geometry, material, wireframe = false, showGrid = true }: ViewportProps) {
+export function Viewport({
+  geometry,
+  material,
+  wireframe = false,
+  showGrid = true,
+  lighting = DEFAULT_LIGHTING,
+}: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
+  const ambientRef = useRef<THREE.AmbientLight | null>(null);
+  const keyRef = useRef<THREE.DirectionalLight | null>(null);
+  const fillRef = useRef<THREE.DirectionalLight | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
 
   // Set up the scene once.
@@ -74,6 +85,9 @@ export function Viewport({ geometry, material, wireframe = false, showGrid = tru
     const fill = new THREE.DirectionalLight(0x88aaff, 0.4);
     fill.position.set(-5, 2, -5);
     scene.add(ambient, key, fill);
+    ambientRef.current = ambient;
+    keyRef.current = key;
+    fillRef.current = fill;
 
     let raf = 0;
     const animate = () => {
@@ -128,6 +142,16 @@ export function Viewport({ geometry, material, wireframe = false, showGrid = tru
   useEffect(() => {
     if (gridRef.current) gridRef.current.visible = showGrid;
   }, [showGrid]);
+
+  // Apply lighting + background without rebuilding the scene.
+  useEffect(() => {
+    if (ambientRef.current) ambientRef.current.intensity = lighting.ambient;
+    if (keyRef.current) keyRef.current.intensity = lighting.key;
+    if (fillRef.current) fillRef.current.intensity = lighting.key * 0.4;
+    if (sceneRef.current?.background instanceof THREE.Color) {
+      sceneRef.current.background.set(lighting.background);
+    }
+  }, [lighting]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }

@@ -15,6 +15,8 @@ import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
 import { Splitter } from '@/ui/Splitter';
 import { useLayout, clamp } from '@/ui/useLayout';
+import { LightsControl } from '@/ui/LightsControl';
+import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -173,6 +175,22 @@ export function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [lighting, setLighting] = useState<Lighting>(() => {
+    try {
+      const raw = localStorage.getItem('p3m.lighting.v1');
+      if (raw) return { ...DEFAULT_LIGHTING, ...(JSON.parse(raw) as Partial<Lighting>) };
+    } catch {
+      /* ignore */
+    }
+    return DEFAULT_LIGHTING;
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('p3m.lighting.v1', JSON.stringify(lighting));
+    } catch {
+      /* ignore */
+    }
+  }, [lighting]);
 
   const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
   const errorNodeIds = useMemo(
@@ -320,6 +338,7 @@ export function App() {
               >
                 Grid
               </button>
+              <LightsControl lighting={lighting} onChange={setLighting} />
               {geometry && (
                 <span className="viewport__stats">
                   {geometry.metadata.triCount.toLocaleString()} tris ·{' '}
@@ -332,6 +351,7 @@ export function App() {
               material={material}
               wireframe={wireframe}
               showGrid={showGrid}
+              lighting={lighting}
             />
             {!geometry && graph.nodes.length > 0 && errors.length === 0 && (
               <div className="viewport__hint">Connect geometry into an Output node to see it here.</div>

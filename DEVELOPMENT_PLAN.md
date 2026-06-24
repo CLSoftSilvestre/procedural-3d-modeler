@@ -151,7 +151,9 @@
 - [x] glTF/GLB export (Target C) — `export/gltf.ts` + Export panel tabs (Code / glTF).
 - [x] UX: node palette **search**; **copy / paste / duplicate** nodes (Ctrl/Cmd+D, +C/+V,
       Inspector Duplicate button). [ ] groups/comments.
-- [x] Viewport tools: **wireframe / grid toggles + stats** overlay. [ ] transform gizmos.
+- [x] Viewport tools: **wireframe / grid toggles + stats** overlay; **lighting control**
+      (`viewport/lighting.ts` presets + `LightsControl` popover: ambient/key sliders +
+      background color, persisted). [ ] transform gizmos.
 - [x] Autosave + local project storage (`state/persistence.ts`) + **New** button.
       [ ] recent files.
 - [x] **Resizable / collapsible layout** — `ui/Splitter.tsx` (pointer-capture drag) +
@@ -227,6 +229,15 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Viewport lighting control
+- **Did:** `viewport/lighting.ts` (`Lighting` type, 5 presets: Studio/Soft/Dramatic/
+  Bright/White Studio). Viewport now applies ambient/key (+ derived fill) intensities and
+  background color from a `lighting` prop via a dedicated effect (no scene rebuild).
+  `LightsControl` popover in the viewport toolbar (preset select + ambient/key sliders +
+  background color); lighting persisted to localStorage. Helps preview the metal/glass
+  material presets.
+- **Verified:** typecheck, 74 tests, lint, build, dev-boot clean.
 
 ### 2026-06-24 — Phase 5 complete: Expression + Random value nodes
 - **Did:** **Random** (`value.random` — deterministic [min,max] from seed) and

@@ -1045,14 +1045,27 @@ body,
   color: var(--muted);
   font-size: 13px;
 }
-.about__badge {
+.about__badges {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.about__badge {
   display: inline-block;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--accent);
   border: 1px solid var(--accent);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.about__version {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 3px 10px;
 }

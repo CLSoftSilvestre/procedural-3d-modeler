@@ -253,6 +253,11 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Show app version in About modal
+- Bumped `package.json` version 0.0.0 → **1.0.0** (live, feature-complete) and inject it via Vite
+  `define: { __APP_VERSION__ }` (read from package.json; declared in `vite-env.d.ts`). About modal
+  shows a `v1.0.0` chip beside the "Early Access" badge in the hero. All checks clean.
+
 ### 2026-06-24 — Editor & viewport UX (batch 4): transform gizmo
 - Selecting a node that has transform sockets (any primitive or the Transform modifier) shows a
   three `TransformControls` gizmo in the viewport. It drives an **invisible proxy** Object3D;

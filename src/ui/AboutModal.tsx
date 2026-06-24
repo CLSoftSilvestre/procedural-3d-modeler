@@ -17,7 +17,10 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
           </svg>
           <h1 className="about__name">Procedural 3D Modeler</h1>
           <p className="about__tagline">Node-based procedural geometry → production three.js code</p>
-          <span className="about__badge">Early Access</span>
+          <div className="about__badges">
+            <span className="about__badge">Early Access</span>
+            <span className="about__version">v{__APP_VERSION__}</span>
+          </div>
         </div>
 
         <div className="about__body">

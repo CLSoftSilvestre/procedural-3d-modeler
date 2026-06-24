@@ -3,13 +3,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
+import { readFileSync } from 'node:fs';
 
 // GitHub Pages serves a project site under /<repo>/. The deploy workflow sets DEPLOY_BASE
 // to that subpath; local dev/build default to '/'.
 const base = process.env.DEPLOY_BASE || '/';
 
+// Expose the package version to the app (shown in the About modal).
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
+
 export default defineConfig({
   base,
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
     VitePWA({

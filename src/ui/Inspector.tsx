@@ -1,18 +1,23 @@
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
+import { isConnectableType, type LiteralValue } from '@/graph/types';
+import { ValueControl } from './ValueControl';
 
 export function Inspector() {
   const selectedNodeId = useStore((s) => s.selectedNodeId);
   const node = useStore((s) => s.graph.nodes.find((n) => n.id === s.selectedNodeId));
+  const params = useStore((s) => s.graph.params);
   const setNodeValue = useStore((s) => s.setNodeValue);
   const removeNode = useStore((s) => s.removeNode);
+  const exposeSocket = useStore((s) => s.exposeSocket);
+  const unexposeParam = useStore((s) => s.unexposeParam);
 
   if (!node || !selectedNodeId) {
     return <div className="panel__empty">Select a node to edit its properties.</div>;
   }
 
   const def = requireNodeDef(node.type);
-  const editable = def.inputs.filter((s) => s.type !== 'geometry');
+  const editable = def.inputs.filter((s) => !isConnectableType(s.type));
 
   return (
     <div className="inspector">
@@ -29,64 +34,29 @@ export function Inspector() {
       {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
       {editable.map((socket) => {
         const value = node.values[socket.id];
-        const ctrl = socket.control;
+        const param = params.find((p) => p.nodeId === selectedNodeId && p.socketId === socket.id);
         return (
-          <label className="inspector__field" key={socket.id}>
-            <span className="inspector__label">{socket.label}</span>
-            {ctrl?.kind === 'slider' || ctrl?.kind === 'number' ? (
-              <div className="inspector__row">
-                {ctrl.kind === 'slider' && (
-                  <input
-                    type="range"
-                    min={ctrl.min}
-                    max={ctrl.max}
-                    step={ctrl.step}
-                    value={Number(value ?? 0)}
-                    onChange={(e) =>
-                      setNodeValue(selectedNodeId, socket.id, Number(e.target.value))
-                    }
-                  />
-                )}
-                <input
-                  type="number"
-                  min={ctrl.min}
-                  max={ctrl.max}
-                  step={ctrl.step}
-                  value={Number(value ?? 0)}
-                  onChange={(e) => setNodeValue(selectedNodeId, socket.id, Number(e.target.value))}
-                />
-              </div>
-            ) : ctrl?.kind === 'checkbox' ? (
-              <input
-                type="checkbox"
-                checked={Boolean(value)}
-                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.checked)}
-              />
-            ) : ctrl?.kind === 'color' ? (
-              <input
-                type="color"
-                value={String(value ?? '#ffffff')}
-                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
-              />
-            ) : ctrl?.kind === 'select' ? (
-              <select
-                value={String(value ?? ctrl.options?.[0]?.value ?? '')}
-                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
+          <div className="inspector__field" key={socket.id}>
+            <div className="inspector__labelrow">
+              <span className="inspector__label">{socket.label}</span>
+              <button
+                className={`inspector__expose${param ? ' is-exposed' : ''}`}
+                title={param ? `Exposed as param "${param.name}" — click to remove` : 'Expose as parameter'}
+                onClick={() => (param ? unexposeParam(param.id) : exposeSocket(selectedNodeId, socket.id))}
               >
-                {ctrl.options?.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+                {param ? '◉ param' : '○ expose'}
+              </button>
+            </div>
+            {param ? (
+              <div className="inspector__exposed">→ controlled by param “{param.name}”</div>
             ) : (
-              <input
-                type="text"
-                value={String(value ?? '')}
-                onChange={(e) => setNodeValue(selectedNodeId, socket.id, e.target.value)}
+              <ValueControl
+                control={socket.control}
+                value={value}
+                onChange={(v: LiteralValue) => setNodeValue(selectedNodeId, socket.id, v as never)}
               />
             )}
-          </label>
+          </div>
         );
       })}
     </div>

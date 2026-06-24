@@ -193,13 +193,52 @@ describe('codegen parity (generated code === live evaluation)', () => {
   });
 });
 
+describe('exposed parameters', () => {
+  function boxWithWidthParam(defaultWidth: number): Graph {
+    const g = makeGraph(
+      [
+        { id: 'a', type: 'primitive.box', values: { width: defaultWidth, height: 1, depth: 1 } },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [edge('e', 'a', 'out')],
+    );
+    g.params = [
+      { id: 'p1', name: 'width', label: 'Width', type: 'number', default: defaultWidth, nodeId: 'a', socketId: 'width' },
+    ];
+    return g;
+  }
+
+  it('emits a parameterized signature and references params.<name>', () => {
+    const result = generateModule(boxWithWidthParam(2));
+    expect(result.code).toContain('width: 2');
+    expect(result.code).toContain('new THREE.BoxGeometry(params.width');
+    expect(result.paramDefaults).toEqual({ width: 2 });
+  });
+
+  it('default run matches eval; override matches eval-with-that-value', () => {
+    const graph = boxWithWidthParam(2);
+    const result = generateModule(graph);
+
+    // Defaults → same as live eval.
+    const evalDefault = evaluateGraph(graph).geometry!;
+    const runDefault = runGenerated(result).geometry.getAttribute('position').array as Float32Array;
+    expect(maxDiff(evalDefault.positions, runDefault)).toBeLessThan(1e-3);
+
+    // Override width=5 → matches eval with the param set to 5, and differs from default.
+    const override = runGenerated(result, { width: 5 }).geometry.getAttribute('position').array as Float32Array;
+    const eval5 = evaluateGraph(boxWithWidthParam(5)).geometry!;
+    expect(maxDiff(eval5.positions, override)).toBeLessThan(1e-3);
+    expect(maxDiff(evalDefault.positions, override)).toBeGreaterThan(0.5);
+  });
+});
+
 describe('generated code shape', () => {
   it('emits an importable module with the function and three import', () => {
     const result = generateModule(
       makeGraph([{ id: 'a', type: 'primitive.box' }, { id: 'out', type: 'output.mesh' }], [edge('e', 'a', 'out')]),
     );
     expect(result.code).toContain("import * as THREE from 'three';");
-    expect(result.code).toContain('export function createModel()');
+    expect(result.code).toContain('export function createModel(');
     expect(result.code).toContain('return new THREE.Mesh(');
   });
 });

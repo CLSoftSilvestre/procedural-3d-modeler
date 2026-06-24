@@ -8,6 +8,7 @@ import { EXAMPLES, getExample } from '@/examples';
 import { Viewport } from '@/viewport/Viewport';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
+import { ParamsPanel } from '@/ui/ParamsPanel';
 import { ExportPanel } from '@/ui/ExportPanel';
 
 function NodePalette() {
@@ -172,7 +173,12 @@ export function App() {
         </main>
 
         <aside className="app__inspector">
-          <Inspector />
+          <div className="app__inspector-top">
+            <Inspector />
+          </div>
+          <div className="app__params">
+            <ParamsPanel />
+          </div>
         </aside>
       </div>
 

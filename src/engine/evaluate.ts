@@ -1,7 +1,7 @@
 import type { GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
 import { mulberry32 } from '@/geometry/rng';
-import type { Edge, Graph, GraphNode, SocketValue } from '@/graph/types';
+import type { Edge, Graph, GraphNode, LiteralValue, SocketValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import type { ResolvedInputs } from '@/nodes/NodeDef';
 import { topoSort } from '@/graph/topology';
@@ -74,20 +74,26 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
   const nodeHashes = new Map<string, string>();
   const random = mulberry32(seed);
 
+  // Exposed-parameter overrides: nodeId:socketId -> current param value.
+  const paramOverrides = new Map<string, LiteralValue>();
+  for (const p of graph.params) paramOverrides.set(`${p.nodeId}:${p.socketId}`, p.default);
+
   for (const nodeId of order) {
     const node = nodesById.get(nodeId);
     if (!node) continue;
     const def = requireNodeDef(node.type);
-    const inputs = resolveInputs(node, graph.edges, outputs);
+    const inputs = resolveInputs(node, graph.edges, outputs, paramOverrides);
     const outSocket = def.outputs[0]?.id ?? 'geometry';
 
-    // Content hash = node type + literal values + seed + upstream node hashes.
+    // Content hash = node type + effective literal values + seed + upstream node hashes.
     const upstream = graph.edges
       .filter((e) => e.target === nodeId)
       .map((e) => `${e.targetSocket}<-${nodeHashes.get(e.source) ?? '∅'}`)
       .sort()
       .join('|');
-    const hash = fnv1a(`${node.type}#${stableValues(node.values)}#s${seed}#${upstream}`);
+    const hash = fnv1a(
+      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#${upstream}`,
+    );
     nodeHashes.set(nodeId, hash);
 
     if (cache) {
@@ -113,7 +119,7 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
 
   const outNode = nodesById.get(graph.outputNodeId);
   if (!outNode) return { geometry: null, material: null, errors };
-  const outInputs = resolveInputs(outNode, graph.edges, outputs);
+  const outInputs = resolveInputs(outNode, graph.edges, outputs, paramOverrides);
   const geometry = (outInputs.geometry as GeometryData | undefined) ?? null;
   const material = (outInputs.material as MaterialSpec | undefined) ?? null;
   return { geometry, material, errors };
@@ -127,18 +133,31 @@ function stableValues(values: GraphNode['values']): string {
     .join(',');
 }
 
-/** Resolve a node's inputs: connected edges win, otherwise literal values / socket defaults. */
+/** Hash contribution of the param overrides bound to a node. */
+function paramSig(nodeId: string, overrides: Map<string, LiteralValue>): string {
+  const parts: string[] = [];
+  for (const [key, val] of overrides) {
+    if (key.startsWith(`${nodeId}:`)) parts.push(`${key}=${JSON.stringify(val)}`);
+  }
+  return parts.sort().join(',');
+}
+
+/** Resolve a node's inputs: connected edges win, then exposed params, then literals / defaults. */
 function resolveInputs(
   node: GraphNode,
   edges: Edge[],
   outputs: Map<string, Record<string, SocketValue>>,
+  paramOverrides: Map<string, LiteralValue>,
 ): ResolvedInputs {
   const def = requireNodeDef(node.type);
   const inputs: ResolvedInputs = {};
   for (const socket of def.inputs) {
     const edge = edges.find((e) => e.target === node.id && e.targetSocket === socket.id);
+    const override = paramOverrides.get(`${node.id}:${socket.id}`);
     if (edge) {
       inputs[socket.id] = outputs.get(edge.source)?.[edge.sourceSocket];
+    } else if (override !== undefined) {
+      inputs[socket.id] = override;
     } else if (socket.id in node.values) {
       inputs[socket.id] = node.values[socket.id];
     } else if (socket.default !== undefined) {

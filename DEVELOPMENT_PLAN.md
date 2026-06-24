@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** M2 + M3 reached — full modeling toolkit + code export, demo'd & verified.
+- **Status:** Phase 5 core done — **M4 reached** (exposed params drive viewport + parameterized export).
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 5 (Parametric system → M4) — not started.
+- **Current phase:** Phase 5 — wrap-up (expression/random nodes, R3F target) then Phase 6 polish.
 
 ---
 
@@ -114,15 +114,21 @@
 - **Exit criteria (M3):** ✅ export a model → generated module reproduces the viewport
   geometry (proven by the parity suite). Verified by 49 tests + typecheck/lint/build.
 
-## Phase 5 — Parametric system (→ M4)  `[ ]`
-- [ ] Promote any input to an exposed `ExposedParam` (name, type, min/max/step, default)
-- [ ] Params panel with live controls (sliders, color, vector, bool, enum)
-- [ ] Param-driven re-eval (fast preview while dragging)
+## Phase 5 — Parametric system (→ M4)  `[~]`
+- [x] Promote any input to an exposed `ExposedParam` — Inspector "expose" toggle;
+      `exposeSocket`/`unexposeParam`/`setParamValue`/`renameParam` store actions;
+      params dropped when their node is deleted.
+- [x] Params panel with live controls (slider/number/color/bool/enum/text) — shared
+      `ValueControl` used by Inspector + Params panel; rename, locate-node, remove.
+- [x] Param-driven re-eval — engine `resolveInputs` honors param overrides; cache hash
+      includes param values (so dragging a param re-evals correctly, worker path).
+- [x] Codegen emits `createModel(params = { … })` honoring exposed params (`params.<name>`
+      references); `runGenerated` accepts overrides; parity + override tests green.
 - [ ] Expression nodes (Monaco) referencing params; seeded random node
-- [ ] Codegen emits `function createX(params = {...})` honoring exposed params
-- [ ] Export targets B (R3F component) and D (graph JSON) finalized
-- **Exit criteria (M4):** exported generator is runtime-parameterized and drives a live
-  demo (configurator-style) from host code.
+- [x] Export target D (graph JSON) — already done (save/load). [ ] Target B (R3F).
+- **Exit criteria (M4):** ✅ exposed params drive the viewport live and the exported
+  `createModel(params)` is runtime-parameterized (proven: override test reproduces an
+  eval with that value). Expression nodes + R3F target are the remaining Phase-5 extras.
 
 ## Phase 6 — Commercial polish (→ M5)  `[ ]`
 - [ ] Performance pass: LOD/preview quality, worker pool, large-graph profiling
@@ -167,9 +173,11 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Phase 5 — parametric system** (→ M4): promote node inputs to exposed `ExposedParam`s;
-   params panel with live sliders; codegen emits `createModel(params = {…})`; R3F target
-   (B) + graph-JSON target (D).
+1. **Phase 5 extras** (optional): Expression nodes (Monaco) + seeded Random node; R3F
+   export target (B). Defer if prioritizing polish.
+2. **Phase 6 — commercial polish** (→ M5): performance (LOD/preview while dragging,
+   worker pool), per-node error surfacing, glTF/GLB export (Target C), node search/palette
+   UX, gizmos, autosave/local projects, docs.
 3. Codegen polish: Prettier formatting (prettier/standalone) for export; proper
    winding-flip in Mirror codegen (cosmetic — parity already holds on positions);
    tree-shakeable named three imports option.
@@ -181,13 +189,38 @@ booleans, deformers (→ M2).
   Optimize in Phase 6 perf pass; cache keeps master copies so transfer needs care.
 - **CI** (GitHub Actions: typecheck + lint + test) + **Playwright** smoke test — set up
   early in Phase 3 to protect the growing node library.
-- Inspector controls for vector/color/select kinds (only number/slider/checkbox/text now).
+- Inspector vector3 control still missing (number/slider/checkbox/text/color/select done).
+- Param value vs export default are unified for now (editing a param changes its baked
+  default). Splitting "preview value" from "exported default" is a future refinement.
 
 ---
 
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 5 core: parametric system → M4 reached
+- **Did:** Exposed parameters end-to-end (build → live tweak → parameterized export).
+  - Store: `exposeSocket`/`unexposeParam`/`setParamValue`/`renameParam`; unique
+    identifier naming; params dropped when their node is deleted; setParamValue keeps the
+    bound node literal in sync (so unexposing preserves the value); history-aware.
+  - Engine: `resolveInputs` applies param overrides (edge > param > literal > default);
+    cache hash includes per-node param values (`paramSig`) so dragging a param re-evals.
+  - Codegen: `exprFor` emits `params.<name>` for bound sockets; function signature is
+    `createModel(params = { … })` with rendered defaults; `paramDefaults` exposed for the
+    harness; `runGenerated(result, overrides)` injects merged params.
+  - UI: shared `ValueControl` (slider/number/color/bool/enum/text) used by both Inspector
+    and the new **Params panel**; Inspector gained an **expose** toggle per input (shows
+    "controlled by param" when exposed); right column split Inspector / Params.
+  - Tests: param parity (defaults match eval) + **override** (run with `{width:5}` matches
+    eval-with-5 and differs from default). 57/57 green.
+- **Verified:** typecheck, 57 tests, lint, build, dev-server boot.
+- **Decisions/notes:** A param's value and its exported default are **unified** for v1
+  (editing the slider changes the baked default) — simplest mental model; splitting
+  preview-value vs default is a future refinement. Only connectable sockets are
+  non-exposable; all scalar inputs can be promoted. Expression/Random nodes + R3F target
+  remain as Phase-5 extras.
+- **Next:** Phase-5 extras (optional) or jump to Phase 6 commercial polish.
 
 ### 2026-06-24 — M2 demo: example library + blank-project export proof
 - **Did:**

@@ -20,7 +20,7 @@ describe('example library', () => {
       it('exports code that runs and matches the evaluation', () => {
         const evaluated = evaluateGraph(ex.graph).geometry!;
         const result = generateModule(ex.graph, { functionName: 'createModel' });
-        expect(result.code).toContain('export function createModel()');
+        expect(result.code).toContain('export function createModel(');
 
         const mesh = runGenerated(result);
         const genPos = mesh.geometry.getAttribute('position').array as Float32Array;

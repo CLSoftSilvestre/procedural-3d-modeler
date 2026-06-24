@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import { createEmptyGraph, GRAPH_VERSION } from '@/graph/types';
-import type { Edge, Graph, GraphNode } from '@/graph/types';
+import type { Edge, ExposedParam, Graph, GraphNode, LiteralValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import { validateConnection } from '@/graph/validate';
 
@@ -27,6 +27,10 @@ interface AppState {
   removeEdge: (id: string) => void;
   setOutputNode: (id: string | null) => void;
   select: (id: string | null) => void;
+  exposeSocket: (nodeId: string, socketId: string) => void;
+  unexposeParam: (paramId: string) => void;
+  setParamValue: (paramId: string, value: LiteralValue) => void;
+  renameParam: (paramId: string, name: string) => void;
   loadGraph: (graph: Graph) => void;
   undo: () => void;
   redo: () => void;
@@ -45,6 +49,25 @@ function makeNode(type: string, position: { x: number; y: number }): GraphNode {
     }
   }
   return { id: nextId('node'), type, position, values, title: def.label };
+}
+
+/** Derive a unique, valid JS identifier for a new param from a label. */
+function uniqueParamName(label: string, existing: ExposedParam[]): string {
+  const base =
+    label
+      .replace(/[^a-zA-Z0-9]+(.)?/g, (_, c: string | undefined) => (c ? c.toUpperCase() : ''))
+      .replace(/^[^a-zA-Z_]+/, '') || 'param';
+  const lower = base.charAt(0).toLowerCase() + base.slice(1);
+  const taken = new Set(existing.map((p) => p.name));
+  if (!taken.has(lower)) return lower;
+  let i = 2;
+  while (taken.has(`${lower}${i}`)) i++;
+  return `${lower}${i}`;
+}
+
+/** Sanitize a user-entered param name to a valid identifier. */
+function sanitizeIdentifier(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_]/g, '').replace(/^[^a-zA-Z_]+/, '') || 'param';
 }
 
 export const useStore = create<AppState>()(
@@ -95,6 +118,7 @@ export const useStore = create<AppState>()(
           pushHistory(s);
           s.graph.nodes = s.graph.nodes.filter((n) => n.id !== id);
           s.graph.edges = s.graph.edges.filter((e) => e.source !== id && e.target !== id);
+          s.graph.params = s.graph.params.filter((p) => p.nodeId !== id);
           if (s.graph.outputNodeId === id) s.graph.outputNodeId = null;
           if (s.selectedNodeId === id) s.selectedNodeId = null;
         }),
@@ -144,6 +168,62 @@ export const useStore = create<AppState>()(
       select: (id) =>
         set((s) => {
           s.selectedNodeId = id;
+        }),
+
+      exposeSocket: (nodeId, socketId) =>
+        set((s) => {
+          const node = s.graph.nodes.find((n) => n.id === nodeId);
+          if (!node) return;
+          if (s.graph.params.some((p) => p.nodeId === nodeId && p.socketId === socketId)) return;
+          const def = requireNodeDef(node.type);
+          const socket = def.inputs.find((i) => i.id === socketId);
+          if (!socket || socket.type === 'geometry' || socket.type === 'material' || socket.type === 'shape') {
+            return;
+          }
+          const value = (node.values[socketId] ?? socket.default) as LiteralValue;
+          pushHistory(s);
+          s.graph.params.push({
+            id: nextId('param'),
+            name: uniqueParamName(socket.label, s.graph.params),
+            label: socket.label,
+            type: socket.type,
+            default: value,
+            min: socket.control?.min,
+            max: socket.control?.max,
+            step: socket.control?.step,
+            nodeId,
+            socketId,
+          });
+        }),
+
+      unexposeParam: (paramId) =>
+        set((s) => {
+          pushHistory(s);
+          s.graph.params = s.graph.params.filter((p) => p.id !== paramId);
+        }),
+
+      setParamValue: (paramId, value) =>
+        set((s) => {
+          pushHistory(s, `param:${paramId}`);
+          const param = s.graph.params.find((p) => p.id === paramId);
+          if (!param) return;
+          param.default = value;
+          // Keep the bound node's literal in sync so the value is consistent if unexposed.
+          const node = s.graph.nodes.find((n) => n.id === param.nodeId);
+          if (node) node.values[param.socketId] = value as never;
+        }),
+
+      renameParam: (paramId, name) =>
+        set((s) => {
+          const param = s.graph.params.find((p) => p.id === paramId);
+          if (!param) return;
+          const desired = sanitizeIdentifier(name);
+          if (s.graph.params.some((p) => p.id !== paramId && p.name === desired)) {
+            s.notice = { kind: 'error', message: `Parameter "${desired}" already exists` };
+            return;
+          }
+          pushHistory(s);
+          param.name = desired;
         }),
 
       loadGraph: (graph) =>

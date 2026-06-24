@@ -9,12 +9,14 @@ import { helperSourceFor } from './helpers';
 export interface CodegenResult {
   /** Full, ready-to-paste ES module (imports + helpers + function). */
   code: string;
-  /** Just the function body (statements + return), no imports/helpers — for the parity harness. */
+  /** Just the function body (statements + return) referencing `params` — for the parity harness. */
   functionBody: string;
   /** Concatenated helper sources used (for the parity harness). */
   helperSource: string;
   /** Module specifiers referenced (for the parity harness). */
   modules: string[];
+  /** Default values for exposed params (name -> value) — for the parity harness. */
+  paramDefaults: Record<string, unknown>;
   functionName: string;
 }
 
@@ -36,6 +38,10 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
   const helpers = new Set<string>();
   const counters = new Map<string, number>();
 
+  // Exposed params: bound socket -> param; plus the defaults object for the signature.
+  const paramBySocket = new Map<string, (typeof graph.params)[number]>();
+  for (const p of graph.params) paramBySocket.set(`${p.nodeId}:${p.socketId}`, p);
+
   const uniqueVar = (hint: string): string => {
     const base = hint.replace(/[^a-zA-Z0-9_]/g, '') || 'v';
     const n = (counters.get(base) ?? 0) + 1;
@@ -43,7 +49,7 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     return `${base}${n}`;
   };
 
-  /** Resolve an input socket to an upstream variable or a rendered literal. */
+  /** Resolve an input socket to an upstream variable, a param reference, or a literal. */
   const exprFor = (nodeId: string, socketId: string): string => {
     const node = nodesById.get(nodeId)!;
     const def = requireNodeDef(node.type);
@@ -53,6 +59,8 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
       const v = outVar.get(edge.source)?.[edge.sourceSocket];
       if (v) return v;
     }
+    const param = paramBySocket.get(`${nodeId}:${socketId}`);
+    if (param) return `params.${param.name}`;
     const value = node.values[socketId] ?? socket?.default;
     return renderLiteral(value, socket?.type ?? 'number');
   };
@@ -88,6 +96,14 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     }
   }
 
+  // Exposed parameters → default object + function signature.
+  const paramDefaults: Record<string, unknown> = {};
+  for (const p of graph.params) paramDefaults[p.name] = p.default;
+  const defaultsLiteral = graph.params.length
+    ? `{\n${graph.params.map((p) => `  ${p.name}: ${renderLiteral(p.default, p.type)},`).join('\n')}\n}`
+    : '{}';
+  const signature = `params = ${defaultsLiteral}`;
+
   const functionBody = [...statements, returnStmt].join('\n');
   const helperSource = helperSourceFor(helpers);
   const importLines = importStatementsFor(modules);
@@ -100,7 +116,7 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
   const codeParts = [
     importLines.join('\n'),
     helperSource,
-    `/** Procedurally generated with Procedural 3D Modeler. */\nexport function ${functionName}() {\n${indentedBody}\n}`,
+    `/** Procedurally generated with Procedural 3D Modeler. */\nexport function ${functionName}(${signature}) {\n${indentedBody}\n}`,
   ].filter(Boolean);
 
   return {
@@ -108,6 +124,7 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     functionBody,
     helperSource,
     modules: [...modules],
+    paramDefaults,
     functionName,
   };
 }

@@ -16,7 +16,10 @@ const AVAILABLE: Record<string, unknown> = {
  * required name-binding preludes are prepended. Used by the parity test harness (and
  * usable later for an in-app "run exported code" preview).
  */
-export function runGenerated(result: CodegenResult): THREE.Mesh {
+export function runGenerated(
+  result: CodegenResult,
+  paramOverrides: Record<string, unknown> = {},
+): THREE.Mesh {
   const names: string[] = [];
   const values: unknown[] = [];
   const preludes: string[] = [];
@@ -30,6 +33,10 @@ export function runGenerated(result: CodegenResult): THREE.Mesh {
     }
     if (info.evalPrelude) preludes.push(info.evalPrelude);
   }
+
+  // The generated body references `params`; supply defaults merged with any overrides.
+  names.push('params');
+  values.push({ ...result.paramDefaults, ...paramOverrides });
 
   const body = [result.helperSource, preludes.join('\n'), result.functionBody]
     .filter(Boolean)

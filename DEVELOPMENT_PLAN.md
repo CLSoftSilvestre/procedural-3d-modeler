@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 6 substantially done (→ M5) — robustness, autosave, glTF, LOD, copy/paste, overlays, tooltips.
+- **Status:** M5 reached + R3F export target done. Remaining Phase-5 extras: Expression/Random nodes.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 6 wrap (gizmos/docs optional) → then Phase 5 extras.
+- **Current phase:** Phase 5 extras (Expression + Random nodes) → then Phase 7 launch prep.
 
 ---
 
@@ -125,7 +125,11 @@
 - [x] Codegen emits `createModel(params = { … })` honoring exposed params (`params.<name>`
       references); `runGenerated` accepts overrides; parity + override tests green.
 - [ ] Expression nodes (Monaco) referencing params; seeded random node
-- [x] Export target D (graph JSON) — already done (save/load). [ ] Target B (R3F).
+- [x] Export target D (graph JSON) — save/load. [x] **Target B (R3F)** — `generateModule`
+      gains `target: 'vanilla' | 'r3f'`; R3F emits a `<Model props>` component with a
+      `useMemo` building `{geometry, material}` and a `<mesh>`, param props with defaults
+      and a value-keyed deps array. Shares the exact build statements with vanilla
+      (`functionBody` identical), so geometry is parity-correct by construction.
 - **Exit criteria (M4):** ✅ exposed params drive the viewport live and the exported
   `createModel(params)` is runtime-parameterized (proven: override test reproduces an
   eval with that value). Expression nodes + R3F target are the remaining Phase-5 extras.
@@ -183,7 +187,10 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Phase 5 extras:** Expression nodes (Monaco) + seeded Random node; R3F export target (B).
+1. **Phase 5 extras (remaining):** Expression node (formula referencing params/inputs →
+   number) + seeded Random node (deterministic value source). Both are value-producing
+   nodes feeding scalar inputs — needs number sockets to be connectable (extend
+   `isConnectableType`/handles or a dedicated value-wiring path) — design first.
 2. Phase 6 remainder (optional polish): transform gizmos, node groups/comments, recent
    files, theming/responsive/a11y pass, full user docs, worker pool for huge graphs.
 3. Codegen polish: Prettier formatting (prettier/standalone); winding-flip in Mirror
@@ -205,6 +212,21 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 5 extra: R3F export target (B)
+- **Did:** `generateModule(graph, { target })` now supports `'vanilla' | 'r3f'`.
+  R3F emits `import { useMemo } from 'react'`, an `export function Model(props = {})` that
+  merges `props` over defaults, a `useMemo` building `{ geometry, material }` (same
+  statements as vanilla) keyed on the param values, and returns `<mesh geometry material/>`.
+  Export panel got a **target selector** (vanilla three.js / React Three Fiber) with
+  `.ts`/`.tsx` download. `CodegenResult.target` added.
+- **Key design:** both targets share the identical runnable `functionBody` (mesh-returning)
+  used by the parity harness, so R3F geometry is **correct by construction** — no separate
+  parity needed. Tests assert R3F structure + that `functionBody`/`paramDefaults` equal the
+  vanilla target (and that body is parity-verified).
+- **Verified:** typecheck, 67 tests, lint, build; eyeballed the gear example's R3F output
+  (clean, memoized, renders `<mesh>`).
+- **Next:** Expression + seeded Random nodes (the last Phase-5 extras).
 
 ### 2026-06-24 — Phase 6 batch 2: LOD, copy/paste, overlays, tooltips → M5
 - **Did:**

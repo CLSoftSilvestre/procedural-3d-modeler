@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '@/state/store';
-import { generateModule } from '@/codegen/generate';
+import { generateModule, type CodegenTarget } from '@/codegen/generate';
 import { downloadGLTF } from '@/export/gltf';
 import type { GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
@@ -17,16 +17,19 @@ type Tab = 'code' | 'gltf';
 export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
   const graph = useStore((s) => s.graph);
   const [tab, setTab] = useState<Tab>('code');
+  const [target, setTarget] = useState<CodegenTarget>('vanilla');
   const [copied, setCopied] = useState(false);
   const [gltfStatus, setGltfStatus] = useState<string | null>(null);
 
   const result = useMemo(() => {
     try {
-      return { code: generateModule(graph).code, error: null as string | null };
+      return { code: generateModule(graph, { target }).code, error: null as string | null };
     } catch (err) {
       return { code: '', error: err instanceof Error ? err.message : String(err) };
     }
-  }, [graph]);
+  }, [graph, target]);
+
+  const fileExt = target === 'r3f' ? 'tsx' : 'ts';
 
   function copy() {
     void navigator.clipboard.writeText(result.code).then(() => {
@@ -40,7 +43,7 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'model.ts';
+    a.download = `model.${fileExt}`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -71,11 +74,19 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
           <div className="modal__actions">
             {tab === 'code' && (
               <>
+                <select
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value as CodegenTarget)}
+                  title="Export target"
+                >
+                  <option value="vanilla">vanilla three.js</option>
+                  <option value="r3f">React Three Fiber</option>
+                </select>
                 <button onClick={copy} disabled={!!result.error}>
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
                 <button onClick={downloadCode} disabled={!!result.error}>
-                  Download .ts
+                  Download .{fileExt}
                 </button>
               </>
             )}

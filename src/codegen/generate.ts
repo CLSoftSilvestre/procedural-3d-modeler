@@ -18,15 +18,26 @@ export interface CodegenResult {
   /** Default values for exposed params (name -> value) — for the parity harness. */
   paramDefaults: Record<string, unknown>;
   functionName: string;
+  target: CodegenTarget;
 }
+
+export type CodegenTarget = 'vanilla' | 'r3f';
 
 export interface CodegenOptions {
   functionName?: string;
+  target?: CodegenTarget;
 }
 
-/** Generate a vanilla three.js module that builds the graph's output mesh. */
+/**
+ * Generate a module that builds the graph's output mesh.
+ * `target: 'vanilla'` → `createModel(params)` returning a THREE.Mesh.
+ * `target: 'r3f'` → a React Three Fiber `<Model>` component.
+ * Both share the exact same geometry/material-building statements, so the R3F output
+ * inherits the vanilla path's parity guarantees.
+ */
 export function generateModule(graph: Graph, opts: CodegenOptions = {}): CodegenResult {
-  const functionName = opts.functionName ?? 'createModel';
+  const target = opts.target ?? 'vanilla';
+  const functionName = opts.functionName ?? (target === 'r3f' ? 'Model' : 'createModel');
   const order = topoSort(graph);
   if (!order) throw new Error('Cannot generate code: graph contains a cycle');
 
@@ -81,50 +92,75 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     if (outSocket) outVar.set(nodeId, { [outSocket.id]: frag.outputVar });
   }
 
-  // Assemble the output mesh from the Output node's geometry + material inputs.
+  // Resolve the Output node's geometry + material inputs to variables.
   modules.add('three');
+  const DEFAULT_MATERIAL = 'new THREE.MeshStandardMaterial({ color: 0x6ea8fe, roughness: 0.5 })';
   const outNodeId = graph.outputNodeId;
-  let returnStmt = 'return new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial());';
+  let geomVar = 'new THREE.BufferGeometry()';
+  let matExpr = DEFAULT_MATERIAL;
   if (outNodeId && nodesById.has(outNodeId)) {
     const geomEdge = graph.edges.find((e) => e.target === outNodeId && e.targetSocket === 'geometry');
     const matEdge = graph.edges.find((e) => e.target === outNodeId && e.targetSocket === 'material');
-    const geomVar = geomEdge && outVar.get(geomEdge.source)?.[geomEdge.sourceSocket];
-    const matVar = matEdge && outVar.get(matEdge.source)?.[matEdge.sourceSocket];
-    if (geomVar) {
-      const material = matVar ?? 'new THREE.MeshStandardMaterial({ color: 0x6ea8fe, roughness: 0.5 })';
-      returnStmt = `return new THREE.Mesh(${geomVar}, ${material});`;
-    }
+    const g = geomEdge && outVar.get(geomEdge.source)?.[geomEdge.sourceSocket];
+    const m = matEdge && outVar.get(matEdge.source)?.[matEdge.sourceSocket];
+    if (g) geomVar = g;
+    if (m) matExpr = m;
   }
 
-  // Exposed parameters → default object + function signature.
+  // Exposed parameters → default object.
   const paramDefaults: Record<string, unknown> = {};
   for (const p of graph.params) paramDefaults[p.name] = p.default;
   const defaultsLiteral = graph.params.length
     ? `{\n${graph.params.map((p) => `  ${p.name}: ${renderLiteral(p.default, p.type)},`).join('\n')}\n}`
     : '{}';
-  const signature = `params = ${defaultsLiteral}`;
 
-  const functionBody = [...statements, returnStmt].join('\n');
   const helperSource = helperSourceFor(helpers);
-  const importLines = importStatementsFor(modules);
+  const indent = (src: string, pad = '  ') =>
+    src
+      .split('\n')
+      .map((l) => (l.length ? pad + l : l))
+      .join('\n');
 
-  const indentedBody = functionBody
-    .split('\n')
-    .map((l) => (l.length ? `  ${l}` : l))
-    .join('\n');
+  // functionBody is always the runnable (mesh-returning) form used by the parity harness.
+  const functionBody = [...statements, `return new THREE.Mesh(${geomVar}, ${matExpr});`].join('\n');
 
-  const codeParts = [
-    importLines.join('\n'),
-    helperSource,
-    `/** Procedurally generated with Procedural 3D Modeler. */\nexport function ${functionName}(${signature}) {\n${indentedBody}\n}`,
-  ].filter(Boolean);
+  let code: string;
+  if (target === 'r3f') {
+    const importLines = ["import { useMemo } from 'react';", ...importStatementsFor(modules)];
+    const paramsObj = graph.params.length
+      ? `{\n${graph.params.map((p) => `    ${p.name}: props.${p.name} ?? ${renderLiteral(p.default, p.type)},`).join('\n')}\n  }`
+      : '{}';
+    const deps = graph.params.map((p) => `params.${p.name}`).join(', ');
+    const memoBody = indent([...statements, `return { geometry: ${geomVar}, material: ${matExpr} };`].join('\n'), '    ');
+    const component = [
+      '/** Procedurally generated React Three Fiber component. */',
+      `export function ${functionName}(props = {}) {`,
+      `  const params = ${paramsObj};`,
+      `  const { geometry, material } = useMemo(() => {`,
+      memoBody,
+      `  }, [${deps}]);`,
+      `  return <mesh geometry={geometry} material={material} />;`,
+      `}`,
+    ].join('\n');
+    code = [importLines.join('\n'), helperSource, component].filter(Boolean).join('\n\n') + '\n';
+  } else {
+    const importLines = importStatementsFor(modules);
+    const fn = [
+      '/** Procedurally generated with Procedural 3D Modeler. */',
+      `export function ${functionName}(params = ${defaultsLiteral}) {`,
+      indent(functionBody),
+      '}',
+    ].join('\n');
+    code = [importLines.join('\n'), helperSource, fn].filter(Boolean).join('\n\n') + '\n';
+  }
 
   return {
-    code: codeParts.join('\n\n') + '\n',
+    code,
     functionBody,
     helperSource,
     modules: [...modules],
     paramDefaults,
     functionName,
+    target,
   };
 }

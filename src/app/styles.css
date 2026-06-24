@@ -585,6 +585,14 @@ body,
 .modal__actions button:hover:not(:disabled) {
   border-color: var(--accent);
 }
+.modal__actions select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+}
 .modal__code {
   margin: 0;
   padding: 14px;

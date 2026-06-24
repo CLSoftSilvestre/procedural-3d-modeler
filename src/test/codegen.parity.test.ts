@@ -242,3 +242,42 @@ describe('generated code shape', () => {
     expect(result.code).toContain('return new THREE.Mesh(');
   });
 });
+
+describe('R3F export target', () => {
+  function paramBox(): Graph {
+    const g = makeGraph(
+      [
+        { id: 'a', type: 'primitive.box', values: { width: 2 } },
+        { id: 'mat', type: 'material.standard', values: { color: '#cc4444' } },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [edge('e', 'a', 'out'), { id: 'em', source: 'mat', sourceSocket: 'material', target: 'out', targetSocket: 'material' }],
+    );
+    g.params = [{ id: 'p1', name: 'width', label: 'Width', type: 'number', default: 2, nodeId: 'a', socketId: 'width' }];
+    return g;
+  }
+
+  it('emits an R3F component with useMemo, params and a <mesh>', () => {
+    const result = generateModule(paramBox(), { target: 'r3f' });
+    expect(result.target).toBe('r3f');
+    expect(result.code).toContain("import { useMemo } from 'react';");
+    expect(result.code).toContain('export function Model(props = {})');
+    expect(result.code).toContain('width: props.width ?? 2');
+    expect(result.code).toContain('useMemo(() =>');
+    expect(result.code).toContain('}, [params.width]);');
+    expect(result.code).toContain('<mesh geometry={geometry} material={material} />');
+  });
+
+  it('shares the geometry-building body with the vanilla target (same params/runnable body)', () => {
+    const r3f = generateModule(paramBox(), { target: 'r3f' });
+    const vanilla = generateModule(paramBox(), { target: 'vanilla' });
+    // The runnable functionBody (used by the parity harness) is identical across targets,
+    // so R3F geometry is correct by construction.
+    expect(r3f.functionBody).toBe(vanilla.functionBody);
+    expect(r3f.paramDefaults).toEqual(vanilla.paramDefaults);
+    // And that body is parity-correct: run it and compare to eval.
+    const evalPos = evaluateGraph(paramBox()).geometry!.positions;
+    const runPos = runGenerated(vanilla).geometry.getAttribute('position').array as Float32Array;
+    expect(maxDiff(evalPos, runPos)).toBeLessThan(1e-3);
+  });
+});

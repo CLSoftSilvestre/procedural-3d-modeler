@@ -253,6 +253,14 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Wider export: STL + OBJ (3D printing / DCC)
+- New `src/export/mesh.ts` (`exportSTL` binary/ASCII, `exportOBJ`, `downloadBlob`) via three's
+  STL/OBJ exporters. Added an **STL / OBJ** tab to the Export modal: STL binary, STL ASCII, OBJ
+  downloads with status + empty-state guard. Geometry-only formats (noted in the UI; use glTF for
+  materials). +3 tests (binary STL exact byte size, ASCII facets, OBJ verts/faces) → 109 total.
+- Note: binary STL `DataView` cast to `BlobPart` (TS narrows its buffer to ArrayBufferLike).
+- This opens the 3D-printing / DCC interchange use case for the standalone app.
+
 ### 2026-06-24 — Show app version in About modal
 - Bumped `package.json` version 0.0.0 → **1.0.0** (live, feature-complete) and inject it via Vite
   `define: { __APP_VERSION__ }` (read from package.json; declared in `vite-env.d.ts`). About modal

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LIGHTING_PRESETS, type Lighting } from '@/viewport/lighting';
+import { Icon } from './Icon';
 
 interface LightsControlProps {
   lighting: Lighting;
@@ -13,8 +14,13 @@ export function LightsControl({ lighting, onChange }: LightsControlProps) {
 
   return (
     <div className="lights">
-      <button className={open ? 'is-active' : ''} onClick={() => setOpen((v) => !v)} title="Lighting">
-        Lights
+      <button
+        className={`viewport__iconbtn${open ? ' is-active' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        title="Lighting"
+        aria-label="Lighting"
+      >
+        <Icon name="sun" size={16} />
       </button>
       {open && (
         <div className="lights__pop" onPointerDown={(e) => e.stopPropagation()}>

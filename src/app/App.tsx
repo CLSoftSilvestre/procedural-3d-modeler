@@ -428,18 +428,20 @@ export function App() {
           <section className="app__viewport" data-tour="viewport">
             <div className="viewport__toolbar">
               <button
-                className={wireframe ? 'is-active' : ''}
+                className={`viewport__iconbtn${wireframe ? ' is-active' : ''}`}
                 onClick={() => setWireframe((v) => !v)}
                 title="Toggle wireframe"
+                aria-label="Toggle wireframe"
               >
-                Wireframe
+                <Icon name="wireframe" size={16} />
               </button>
               <button
-                className={showGrid ? 'is-active' : ''}
+                className={`viewport__iconbtn${showGrid ? ' is-active' : ''}`}
                 onClick={() => setShowGrid((v) => !v)}
                 title="Toggle grid"
+                aria-label="Toggle grid"
               >
-                Grid
+                <Icon name="grid" size={16} />
               </button>
               <LightsControl lighting={lighting} onChange={setLighting} />
               {showGizmo && (
@@ -468,11 +470,13 @@ export function App() {
                 </span>
               )}
               <button
+                className="viewport__iconbtn"
                 onClick={saveScreenshot}
                 disabled={!geometry}
                 title="Save viewport as PNG"
+                aria-label="Save viewport as PNG"
               >
-                <Icon name="camera" size={14} /> PNG
+                <Icon name="camera" size={16} />
               </button>
               {animated && (
                 <button

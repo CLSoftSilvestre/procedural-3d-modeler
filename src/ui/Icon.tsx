@@ -20,7 +20,10 @@ export type IconName =
   | 'chevron-right'
   | 'help'
   | 'camera'
-  | 'map';
+  | 'map'
+  | 'wireframe'
+  | 'grid'
+  | 'sun';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -114,6 +117,27 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
       <path d="M8 2v16M16 6v16" />
+    </>
+  ),
+  wireframe: (
+    <>
+      <path d="M12 2 21 7v10l-9 5-9-5V7z" />
+      <path d="M3 7l9 5 9-5M12 12v10" />
+      <path d="M3 7l9 5M21 7l-9 5" opacity="0.5" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </>
+  ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
     </>
   ),
 };

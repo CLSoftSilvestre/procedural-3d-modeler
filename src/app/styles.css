@@ -830,6 +830,29 @@ body,
   color: var(--text);
   border-color: var(--accent);
 }
+/* icon-only viewport buttons */
+.viewport__iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
+  padding: 0 !important;
+}
+.viewport__iconbtn svg {
+  stroke: currentColor;
+}
+.viewport__iconbtn.is-active {
+  color: var(--accent);
+}
+.viewport__iconbtn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.viewport__iconbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .viewport__stats {
   background: rgba(31, 31, 38, 0.85);
   border: 1px solid var(--border);

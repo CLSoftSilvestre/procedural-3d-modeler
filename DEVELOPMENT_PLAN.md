@@ -253,6 +253,12 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Viewport toolbar: icon-only buttons
+- Wireframe / Grid / Lights / PNG are now **icon-only** (with `title` + `aria-label` tooltips):
+  added `wireframe`, `grid`, `sun` icons; PNG reuses `camera`. New `.viewport__iconbtn` style
+  (square, stroke icons, accent active state). LightsControl button became the sun icon.
+- All checks clean (109 tests).
+
 ### 2026-06-24 — Wider export: STL + OBJ (3D printing / DCC)
 - New `src/export/mesh.ts` (`exportSTL` binary/ASCII, `exportOBJ`, `downloadBlob`) via three's
   STL/OBJ exporters. Added an **STL / OBJ** tab to the Export modal: STL binary, STL ASCII, OBJ

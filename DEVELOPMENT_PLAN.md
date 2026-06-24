@@ -253,6 +253,15 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Export polish: Prettier formatting
+- The Export panel now pretty-prints the generated three.js / R3F code with Prettier
+  (`src/codegen/format.ts`, parser `babel-ts` so it handles vanilla JS + R3F JSX). Copy/Download
+  use the formatted text; falls back to raw on any failure.
+- Prettier (standalone + babel + estree parsers, ~600 kB) is **dynamically imported**, so it
+  splits into its own lazy chunks loaded only when formatting — zero initial-bundle impact.
+- Moved `prettier` from devDependencies → dependencies (now imported at runtime). +3 format tests
+  (115 total). All checks clean.
+
 ### 2026-06-24 — Multi-input Output (merge several geometries)
 - Added `SocketSpec.multi` (fan-in). The **Output node's geometry socket is now multi-input**:
   connect several geometries and they're **merged** into one mesh — assembling parts without

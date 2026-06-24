@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/state/store';
 import { generateModule, type CodegenTarget } from '@/codegen/generate';
+import { formatCode } from '@/codegen/format';
 import { downloadGLTF } from '@/export/gltf';
 import { exportSTL, exportOBJ, downloadBlob } from '@/export/mesh';
 import type { GeometryData } from '@/geometry/GeometryData';
@@ -31,17 +32,32 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
     }
   }, [graph, target]);
 
+  // Pretty-print the generated code (Prettier is lazy-loaded). Falls back to raw on failure.
+  const [formatted, setFormatted] = useState(result.code);
+  useEffect(() => {
+    if (result.error) return;
+    let cancelled = false;
+    setFormatted(result.code); // show raw immediately, then replace with formatted
+    void formatCode(result.code).then((out) => {
+      if (!cancelled) setFormatted(out);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [result.code, result.error]);
+
+  const codeText = result.error ? '' : formatted;
   const fileExt = target === 'r3f' ? 'tsx' : 'ts';
 
   function copy() {
-    void navigator.clipboard.writeText(result.code).then(() => {
+    void navigator.clipboard.writeText(codeText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }
 
   function downloadCode() {
-    const blob = new Blob([result.code], { type: 'text/typescript' });
+    const blob = new Blob([codeText], { type: 'text/typescript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -119,7 +135,7 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
           (result.error ? (
             <div className="modal__error">⚠ {result.error}</div>
           ) : (
-            <pre className="modal__code">{result.code}</pre>
+            <pre className="modal__code">{codeText}</pre>
           ))}
 
         {tab === 'gltf' && (

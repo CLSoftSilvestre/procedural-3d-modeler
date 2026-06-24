@@ -31,7 +31,9 @@
       "Bash(node -p \"require\\('./package.json'\\).version\")",
       "Bash(which rsvg-convert *)",
       "Read(//opt/homebrew/bin/**)",
-      "Bash(sort -t'\\(' -k1)"
+      "Bash(sort -t'\\(' -k1)",
+      "Bash(node -e \"console.log\\('prettier', require\\('prettier/package.json'\\).version\\)\")",
+      "Bash(sort -k2 -h)"
     ],
     "additionalDirectories": [
       "/tmp",

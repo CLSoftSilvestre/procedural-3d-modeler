@@ -15,6 +15,7 @@ import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
 import { isConnectableType } from '@/graph/types';
+import { categoryColor } from './categoryColors';
 
 /** Generic node renderer driven by the node definition's sockets. */
 function GraphNodeView({ id, data }: NodeProps) {
@@ -23,9 +24,16 @@ function GraphNodeView({ id, data }: NodeProps) {
   const selected = selectedNodeId === id;
   const hasError = Boolean(data.error);
 
+  const accent = categoryColor(def.category);
   return (
-    <div className={`graph-node${selected ? ' selected' : ''}${hasError ? ' has-error' : ''}`}>
-      <div className="graph-node__title">{def.label}</div>
+    <div
+      className={`graph-node${selected ? ' selected' : ''}${hasError ? ' has-error' : ''}`}
+      style={{ ['--cat' as string]: accent }}
+    >
+      <div className="graph-node__title">
+        <span className="graph-node__dot" />
+        {def.label}
+      </div>
       <div className="graph-node__body">
         {def.inputs.map((s, i) => (
           <div className="graph-node__row" key={s.id}>

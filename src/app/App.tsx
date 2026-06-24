@@ -11,6 +11,7 @@ import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
 import { ExportPanel } from '@/ui/ExportPanel';
 import { Icon } from '@/ui/Icon';
+import { categoryColor } from '@/ui/categoryColors';
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -42,7 +43,10 @@ function NodePalette() {
       />
       {filtered.map(([category, defs]) => (
         <div className="palette__group" key={category}>
-          <span className="palette__category">{category}</span>
+          <span className="palette__category">
+            <span className="palette__cat-dot" style={{ background: categoryColor(category) }} />
+            {category}
+          </span>
           {defs.map((def) => (
             <button
               key={def.type}
@@ -159,6 +163,7 @@ export function App() {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
+  const loadGraph = useStore((s) => s.loadGraph);
   const [showExport, setShowExport] = useState(false);
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
@@ -168,6 +173,13 @@ export function App() {
     () => new Set(errors.map((e) => e.nodeId).filter(Boolean)),
     [errors],
   );
+
+  function quickStartBox() {
+    const s = useStore.getState();
+    const boxId = s.addNode('primitive.box', { x: 120, y: 90 });
+    const outId = s.addNode('output.mesh', { x: 440, y: 90 });
+    s.addEdge({ source: boxId, sourceSocket: 'geometry', target: outId, targetSocket: 'geometry' });
+  }
 
   // Keyboard shortcuts: undo/redo + duplicate/copy/paste.
   useEffect(() => {
@@ -202,8 +214,22 @@ export function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <span className="app__brand">Procedural 3D Modeler</span>
-        <span className="app__sub">three.js generator</span>
+        <div className="app__logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              d="M12 2 21 7v10l-9 5-9-5V7z"
+              fill="none"
+              stroke="#6ea8fe"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            <path d="M12 2v20M3 7l9 5 9-5" fill="none" stroke="#6ea8fe" strokeWidth="1.3" opacity="0.6" />
+          </svg>
+        </div>
+        <div className="app__title">
+          <span className="app__brand">Procedural 3D Modeler</span>
+          <span className="app__sub">three.js generator</span>
+        </div>
         <Toolbar onExport={() => setShowExport(true)} />
         <span className="app__stats">
           {evaluating && <span className="app__busy">evaluating…</span>}
@@ -223,6 +249,27 @@ export function App() {
             <ReactFlowProvider>
               <GraphEditor errorNodeIds={errorNodeIds} />
             </ReactFlowProvider>
+            {graph.nodes.length === 0 && (
+              <div className="emptystate">
+                <div className="emptystate__card">
+                  <h2>Start modeling</h2>
+                  <p>
+                    Add nodes from the palette on the left, or jump in with a starter graph.
+                  </p>
+                  <div className="emptystate__actions">
+                    <button className="emptystate__primary" onClick={quickStartBox}>
+                      <Icon name="new" /> Box → Output
+                    </button>
+                    <button onClick={() => loadGraph(EXAMPLES[0]!.graph)}>
+                      Load “{EXAMPLES[0]!.name}” example
+                    </button>
+                  </div>
+                  <p className="emptystate__hint">
+                    Tip: connect a node’s output handle to the Output node to see it render.
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
           <section className="app__viewport">
             <div className="viewport__toolbar">
@@ -253,6 +300,9 @@ export function App() {
               wireframe={wireframe}
               showGrid={showGrid}
             />
+            {!geometry && graph.nodes.length > 0 && errors.length === 0 && (
+              <div className="viewport__hint">Connect geometry into an Output node to see it here.</div>
+            )}
             {errors.length > 0 && (
               <div className="viewport__errors">
                 {errors.map((e, i) => (

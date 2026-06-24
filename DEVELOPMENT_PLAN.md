@@ -149,11 +149,12 @@
 - [x] Viewport tools: **wireframe / grid toggles + stats** overlay. [ ] transform gizmos.
 - [x] Autosave + local project storage (`state/persistence.ts`) + **New** button.
       [ ] recent files.
-- [~] Theming/UI polish — SVG icon set (`ui/Icon.tsx`) replacing broken emoji glyphs;
+- [x] Theming/UI polish — SVG icon set (`ui/Icon.tsx`) replacing broken emoji glyphs;
       dark-themed React Flow controls/edges/handles; **material presets library**
-      (`material/presets.ts`: steel/aluminum/chrome/gold/copper/iron/painted/plastic/
-      rubber/oak/walnut/concrete/ceramic/terracotta/glass) via an Inspector preset picker
-      (+ `setNodeValues` store action). [ ] responsive layout, a11y pass.
+      (`material/presets.ts`) via an Inspector preset picker (+ `setNodeValues`);
+      **category-colored node headers** (`ui/categoryColors.ts`) + palette dots;
+      **branded header** (cube logo); **empty-state** card (quick-start Box→Output / load
+      example) + viewport hint; **responsive** breakpoints. [ ] full a11y pass.
 - [x] Per-node **tooltips/help** (`NodeDef.description` on all nodes → palette tooltip +
       inspector subtitle). [ ] full user docs.
 - **Exit criteria (M5):** ✅ stable, fast, pleasant; no known data-loss/crash bugs.
@@ -216,6 +217,18 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Visual polish: node colors, branding, empty state, responsive
+- **Did:** category-colored node headers + glow dot (`ui/categoryColors.ts`; gradient
+  title bar via `color-mix`, hover/selected use the category accent) + palette category
+  dots; branded header with an inline cube **logo** + tightened typography; **empty-state**
+  card on a blank canvas (quick-start "Box → Output" and "Load example") + a viewport hint
+  when geometry isn't connected; **responsive** breakpoints (1200/980/760px) shrinking/
+  hiding side panels. 69/69 tests green.
+- **Verified:** typecheck, 69 tests, lint, build, dev-boot clean.
+- **Note:** uses CSS `color-mix()` (broadly supported in modern browsers). Full a11y pass
+  (focus rings, ARIA, keyboard nav of the graph) still pending.
+- **Next:** Phase-5 deferred (Expression + seeded Random nodes), per plan.
 
 ### 2026-06-24 — UI/UX polish: icons, material presets, themed controls
 - **Reported:** button glyphs rendered as boxes; no material library; white zoom buttons.

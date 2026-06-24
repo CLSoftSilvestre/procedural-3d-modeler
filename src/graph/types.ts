@@ -52,6 +52,9 @@ export interface SocketSpec {
   /** Optional inspector section this input belongs to (e.g. "Transform"). Inputs sharing
    *  a group are rendered together in a collapsible section; ungrouped inputs come first. */
   group?: string;
+  /** Accept multiple incoming edges (fan-in). Resolved to an array of upstream values;
+   *  e.g. the Output's geometry socket merges all connected geometries. */
+  multi?: boolean;
   /** UI hints for the inspector control. */
   control?: {
     kind: 'slider' | 'number' | 'vector' | 'checkbox' | 'text' | 'color' | 'select';

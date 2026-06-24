@@ -171,11 +171,27 @@ export const useStore = create<AppState>()(
             s.notice = { kind: 'error', message: result.reason };
             return;
           }
-          pushHistory(s);
-          // Enforce single connection per target socket.
-          s.graph.edges = s.graph.edges.filter(
-            (e) => !(e.target === edge.target && e.targetSocket === edge.targetSocket),
+          const targetDef = requireNodeDef(
+            s.graph.nodes.find((n) => n.id === edge.target)!.type,
           );
+          const socket = targetDef.inputs.find((i) => i.id === edge.targetSocket);
+          if (socket?.multi) {
+            // Fan-in socket: keep existing edges, just avoid an exact duplicate.
+            const dup = s.graph.edges.some(
+              (e) =>
+                e.target === edge.target &&
+                e.targetSocket === edge.targetSocket &&
+                e.source === edge.source &&
+                e.sourceSocket === edge.sourceSocket,
+            );
+            if (dup) return;
+          } else {
+            // Enforce single connection per target socket.
+            s.graph.edges = s.graph.edges.filter(
+              (e) => !(e.target === edge.target && e.targetSocket === edge.targetSocket),
+            );
+          }
+          pushHistory(s);
           s.graph.edges.push({ ...edge, id: nextId('edge') });
           s.notice = null;
         }),

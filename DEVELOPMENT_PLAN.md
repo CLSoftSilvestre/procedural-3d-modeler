@@ -253,6 +253,18 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Multi-input Output (merge several geometries)
+- Added `SocketSpec.multi` (fan-in). The **Output node's geometry socket is now multi-input**:
+  connect several geometries and they're **merged** into one mesh — assembling parts without
+  chaining Boolean nodes. (Merge = concatenation; visually = union for separate parts, far
+  cheaper/robust. The Boolean node remains for true watertight CSG of overlapping solids.)
+- Engine: `resolveInputs` returns an array for `multi` sockets; `output.evaluate` merges via
+  `mergeGeometriesData`; the final geometry now comes from the output's evaluated result.
+- Store: `addEdge` keeps existing edges for multi sockets (dedupes exact duplicates) instead of
+  enforcing one-per-socket. Codegen: gathers all geometry edges and emits
+  `BufferGeometryUtils.mergeGeometries([...], false)` when >1. Parity-tested (two boxes → 24 tris).
+- 112 tests; all checks clean.
+
 ### 2026-06-24 — Gizmo mode buttons → icons
 - Move/Rotate/Scale in the viewport gizmo toolbar are now icons (new `move`/`rotate`/`scale`
   icons) with `title` + `aria-label`; segmented buttons made square/centered. All checks clean.

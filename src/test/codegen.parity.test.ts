@@ -199,6 +199,23 @@ describe('codegen parity (generated code === live evaluation)', () => {
     );
   });
 
+  it('multiple geometries merged into the output', () => {
+    // Two boxes wired into the (multi-input) output socket should merge — eval and codegen.
+    const graph = makeGraph(
+      [
+        { id: 'a', type: 'primitive.box', values: { tx: -1 } },
+        { id: 'b', type: 'primitive.box', values: { tx: 1 } },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [edge('e1', 'a', 'out'), edge('e2', 'b', 'out')],
+    );
+    const evaluated = evaluateGraph(graph);
+    expect(evaluated.errors).toHaveLength(0);
+    // Merged tri count = sum of both boxes (12 each).
+    expect(evaluated.geometry!.metadata.triCount).toBe(24);
+    expectParity(graph);
+  });
+
   it('boolean (CSG subtract)', () => {
     expectParity(
       makeGraph(

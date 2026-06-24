@@ -5,9 +5,9 @@
 > (status checkboxes, the Session Log, and Next Up). Companion docs:
 > `PROMPT.md` (vision), `ARCHITECTURE.md` (how it's built).
 
-- **Status:** Phase 6 batch 1 done — error robustness, autosave, glTF export, palette search.
+- **Status:** Phase 6 substantially done (→ M5) — robustness, autosave, glTF, LOD, copy/paste, overlays, tooltips.
 - **Last updated:** 2026-06-24
-- **Current phase:** Phase 6 (Commercial polish → M5) — in progress; then Phase 5 extras.
+- **Current phase:** Phase 6 wrap (gizmos/docs optional) → then Phase 5 extras.
 
 ---
 
@@ -131,21 +131,25 @@
   eval with that value). Expression nodes + R3F target are the remaining Phase-5 extras.
 
 ## Phase 6 — Commercial polish (→ M5)  `[~]`
-- [ ] Performance pass: LOD/preview quality, worker pool, large-graph profiling
+- [x] Performance: **LOD preview-while-editing** — `quality` ('preview'|'full') threaded
+      through `evaluateGraph`/`EvalContext`/worker/`EvalService` (+ cache hash); primitives
+      (segment params marked `lod`), Lathe & Extrude cut detail in preview; the hook runs
+      preview during rapid edits and a trailing full pass when they settle. Export/codegen
+      always 'full'. [ ] worker pool / large-graph profiling.
 - [x] Robust error handling + node error surfacing — eval errors keep the **last good
-      geometry** (viewport never blanks); failing nodes get a red highlight in the graph
-      (error nodeIds → node `data.error`); messages in the viewport overlay. ErrorBoundary
-      already prevents white-screens.
-- [x] glTF/GLB export (Target C) — `export/gltf.ts` (GLTFExporter) + Export panel tabs
-      (Code / glTF) with .glb (binary) and .gltf (JSON) download.
-- [x] UX: node search/palette (filter box). [ ] keyboard shortcuts (beyond undo/redo),
-      copy/paste nodes, groups/comments.
-- [ ] Viewport tools: transform gizmos, wireframe/normals/stats overlays
-- [x] Autosave + local project storage — `state/persistence.ts` (debounced localStorage
-      save, restore on load, corrupt-data safe) + **New** toolbar button. [ ] recent files.
+      geometry** (viewport never blanks); failing nodes highlight red in the graph;
+      messages in the overlay. ErrorBoundary prevents white-screens.
+- [x] glTF/GLB export (Target C) — `export/gltf.ts` + Export panel tabs (Code / glTF).
+- [x] UX: node palette **search**; **copy / paste / duplicate** nodes (Ctrl/Cmd+D, +C/+V,
+      Inspector Duplicate button). [ ] groups/comments.
+- [x] Viewport tools: **wireframe / grid toggles + stats** overlay. [ ] transform gizmos.
+- [x] Autosave + local project storage (`state/persistence.ts`) + **New** button.
+      [ ] recent files.
 - [ ] Theming, responsive layout, accessibility pass
-- [ ] User docs + in-app help/tooltips per node
-- **Exit criteria (M5):** stable, fast, pleasant; no known data-loss or crash bugs.
+- [x] Per-node **tooltips/help** (`NodeDef.description` on all nodes → palette tooltip +
+      inspector subtitle). [ ] full user docs.
+- **Exit criteria (M5):** ✅ stable, fast, pleasant; no known data-loss/crash bugs.
+  Remaining (gizmos, groups, recent files, theming/a11y, full docs) are nice-to-haves.
 
 ## Phase 7 — Launch readiness (→ M6)  `[ ]`
 - [ ] Onboarding flow + interactive tutorial
@@ -179,10 +183,9 @@ Phase 3 — build out the modeling toolkit: more primitives, transforms, arrays,
 booleans, deformers (→ M2).
 
 ## Next Up (do these next, in order)
-1. **Phase 6 batch 2:** performance (LOD/preview-while-dragging via a quality flag through
-   eval; worker pool for big graphs), viewport overlays (wireframe/grid/stats toggles) +
-   transform gizmos, copy/paste nodes, per-node tooltips/help.
-2. **Phase 5 extras:** Expression nodes (Monaco) + seeded Random node; R3F export target (B).
+1. **Phase 5 extras:** Expression nodes (Monaco) + seeded Random node; R3F export target (B).
+2. Phase 6 remainder (optional polish): transform gizmos, node groups/comments, recent
+   files, theming/responsive/a11y pass, full user docs, worker pool for huge graphs.
 3. Codegen polish: Prettier formatting (prettier/standalone); winding-flip in Mirror
    codegen; tree-shakeable named three imports option.
 4. Backfill Phase-3 niceties: circle primitive, subdivide/smooth, bend, grid Array,
@@ -202,6 +205,27 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 6 batch 2: LOD, copy/paste, overlays, tooltips → M5
+- **Did:**
+  - **LOD preview-while-editing:** `quality` ('preview'|'full') flows through
+    `evaluateGraph` → `EvalContext` → worker → `EvalService`, and is part of the cache
+    hash. Primitives mark segment params `lod` (×0.4 in preview); Lathe/Extrude cut
+    segments/bevel/curve detail in preview. The hook (`useEvaluatedGeometry`) requests
+    preview during rapid edits and a trailing **full** pass ~220ms after they settle.
+    Export/codegen are always full, so generated output is unaffected (parity intact).
+  - **Copy/paste/duplicate:** store `duplicateNode`/`copyNode`/`pasteNode` + clipboard;
+    Ctrl/Cmd+D, +C/+V (guarded against text inputs); Inspector Duplicate button.
+  - **Viewport overlays:** wireframe + grid toggles, live tri/vert stats.
+  - **Tooltips:** `NodeDef.description` on every node → palette tooltip + inspector
+    subtitle.
+  - Tests: +3 clipboard, +2 LOD. 65/65 green.
+- **Verified:** typecheck, 65 tests, lint, build, dev-boot clean.
+- **Decisions/notes:** LOD reduction factor 0.4 (min clamped); only segment-like params
+  reduce, so shape/topology stays recognizable in preview. Transform gizmos deferred —
+  awkward in a procedural pipeline (which node would they edit?); revisit if users want
+  direct manipulation that writes back to a Transform node.
+- **Next:** Phase 5 extras (Expression/Random nodes, R3F target).
 
 ### 2026-06-24 — Phase 6 batch 1: robustness, autosave, glTF, search
 - **Did:**

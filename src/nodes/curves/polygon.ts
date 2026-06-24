@@ -7,6 +7,7 @@ export const polygonNode: NodeDef = {
   type: 'curve.polygon',
   category: 'Curves',
   label: 'Polygon',
+  description: 'A regular n-sided 2D profile for Extrude or Lathe.',
   inputs: [
     { id: 'sides', label: 'Sides', type: 'number', default: 6, control: { kind: 'slider', min: 3, max: 64, step: 1 } },
     { id: 'radius', label: 'Radius', type: 'number', default: 1, control: { kind: 'slider', min: 0.01, max: 10, step: 0.01 } },

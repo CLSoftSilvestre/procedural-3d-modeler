@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { registerBuiltinNodes } from '@/nodes';
 import { evaluateGraph, EvalCache, type EvalResult } from '@/engine/evaluate';
 import type { Graph } from '@/graph/types';
+import type { EvalQuality } from '@/nodes/NodeDef';
 
 registerBuiltinNodes();
 
@@ -9,8 +10,8 @@ registerBuiltinNodes();
 const cache = new EvalCache();
 
 const api = {
-  evaluate(graph: Graph, seed = 1): EvalResult {
-    return evaluateGraph(graph, seed, cache);
+  evaluate(graph: Graph, seed = 1, quality: EvalQuality = 'full'): EvalResult {
+    return evaluateGraph(graph, seed, cache, quality);
   },
   clearCache(): void {
     cache.clear();

@@ -9,6 +9,7 @@ const seg = (id: string, label: string, def: number, max = 128) => ({
   min: 1,
   max,
   step: 1,
+  lod: true,
 });
 
 export const primitiveNodes: NodeDef[] = [

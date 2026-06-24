@@ -11,11 +11,14 @@ export interface PrimitiveParam {
   min: number;
   max: number;
   step?: number;
+  /** Segment-like param: reduced in preview quality for fast viewport feedback. */
+  lod?: boolean;
 }
 
 export interface PrimitiveConfig {
   type: string;
   label: string;
+  description?: string;
   /** three.js class name for codegen, e.g. "SphereGeometry". */
   className: string;
   /** Build the geometry from ordered numeric args. */
@@ -41,11 +44,16 @@ export function makePrimitive(config: PrimitiveConfig): NodeDef {
     type: config.type,
     category: 'Primitives',
     label: config.label,
+    description: config.description ?? `${config.label} primitive.`,
     inputs,
     outputs: [{ id: 'geometry', label: 'Geometry', type: 'geometry' }],
 
-    evaluate(resolved) {
-      const args = config.params.map((p) => num(resolved, p.id, p.default));
+    evaluate(resolved, ctx) {
+      const args = config.params.map((p) => {
+        const v = num(resolved, p.id, p.default);
+        // In preview, drop segment counts for speed (never affects export/codegen).
+        return ctx.quality === 'preview' && p.lod ? Math.max(p.min, Math.ceil(v * 0.4)) : v;
+      });
       const geom = config.build(args);
       const data = fromBufferGeometry(geom);
       geom.dispose();

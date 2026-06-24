@@ -10,6 +10,7 @@ export const outputNode: NodeDef = {
   type: 'output.mesh',
   category: 'Output',
   label: 'Output',
+  description: 'The final mesh: the geometry (and material) shown and exported.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     { id: 'material', label: 'Material', type: 'material' },

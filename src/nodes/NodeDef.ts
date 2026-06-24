@@ -13,9 +13,14 @@ import type { SocketSpec, SocketValue } from '@/graph/types';
 /** Resolved inputs passed to evaluate(): socket id -> value (edges resolved, defaults applied). */
 export type ResolvedInputs = Record<string, SocketValue | undefined>;
 
+export type EvalQuality = 'preview' | 'full';
+
 export interface EvalContext {
   /** Seeded RNG so randomness is reproducible across eval and codegen. */
   random: () => number;
+  /** 'preview' lets nodes cut detail (e.g. segments) for fast viewport feedback while
+   *  editing. Always 'full' for export/codegen, so it never affects generated output. */
+  quality: EvalQuality;
 }
 
 /** A unit of generated code: statements plus the variable holding this node's output. */
@@ -41,6 +46,8 @@ export interface NodeDef {
   type: string; // e.g. "primitive.box"
   category: string; // "Primitives" | "Modifiers" | "Booleans" | ...
   label: string;
+  /** One-line help shown as a tooltip in the palette and a subtitle in the inspector. */
+  description?: string;
   inputs: SocketSpec[];
   outputs: SocketSpec[];
   /** Pure: perform the operation for the viewport. */

@@ -46,6 +46,7 @@ function NodePalette() {
             <button
               key={def.type}
               className="palette__btn"
+              title={def.description ?? def.label}
               onClick={() =>
                 addNode(def.type, { x: 80 + Math.random() * 120, y: 80 + Math.random() * 120 })
               }
@@ -154,6 +155,8 @@ export function App() {
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
   const [showExport, setShowExport] = useState(false);
+  const [wireframe, setWireframe] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
 
   const { geometry, material, errors, evaluating } = useEvaluatedGeometry(graph);
   const errorNodeIds = useMemo(
@@ -161,14 +164,31 @@ export function App() {
     [errors],
   );
 
-  // Keyboard shortcuts for undo/redo.
+  // Keyboard shortcuts: undo/redo + duplicate/copy/paste.
   useEffect(() => {
+    function isTyping(): boolean {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el as HTMLElement).isContentEditable;
+    }
     function onKey(e: KeyboardEvent) {
       const mod = e.metaKey || e.ctrlKey;
-      if (!mod || e.key.toLowerCase() !== 'z') return;
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
+      if (!mod) return;
+      const key = e.key.toLowerCase();
+      const s = useStore.getState();
+      if (key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (key === 'd' && s.selectedNodeId) {
+        e.preventDefault();
+        s.duplicateNode(s.selectedNodeId);
+      } else if (key === 'c' && s.selectedNodeId && !isTyping()) {
+        s.copyNode(s.selectedNodeId);
+      } else if (key === 'v' && s.clipboard && !isTyping()) {
+        s.pasteNode();
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -200,7 +220,34 @@ export function App() {
             </ReactFlowProvider>
           </section>
           <section className="app__viewport">
-            <Viewport geometry={geometry} material={material} />
+            <div className="viewport__toolbar">
+              <button
+                className={wireframe ? 'is-active' : ''}
+                onClick={() => setWireframe((v) => !v)}
+                title="Toggle wireframe"
+              >
+                Wireframe
+              </button>
+              <button
+                className={showGrid ? 'is-active' : ''}
+                onClick={() => setShowGrid((v) => !v)}
+                title="Toggle grid"
+              >
+                Grid
+              </button>
+              {geometry && (
+                <span className="viewport__stats">
+                  {geometry.metadata.triCount.toLocaleString()} tris ·{' '}
+                  {(geometry.positions.length / 3).toLocaleString()} verts
+                </span>
+              )}
+            </div>
+            <Viewport
+              geometry={geometry}
+              material={material}
+              wireframe={wireframe}
+              showGrid={showGrid}
+            />
             {errors.length > 0 && (
               <div className="viewport__errors">
                 {errors.map((e, i) => (

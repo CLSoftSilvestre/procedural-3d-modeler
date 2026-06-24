@@ -9,6 +9,7 @@ export function Inspector() {
   const params = useStore((s) => s.graph.params);
   const setNodeValue = useStore((s) => s.setNodeValue);
   const removeNode = useStore((s) => s.removeNode);
+  const duplicateNode = useStore((s) => s.duplicateNode);
   const exposeSocket = useStore((s) => s.exposeSocket);
   const unexposeParam = useStore((s) => s.unexposeParam);
 
@@ -23,14 +24,24 @@ export function Inspector() {
     <div className="inspector">
       <div className="inspector__header">
         <h3 className="inspector__title">{def.label}</h3>
-        <button
-          className="inspector__delete"
-          title="Delete node (or select it and press Delete/Backspace)"
-          onClick={() => removeNode(selectedNodeId)}
-        >
-          Delete
-        </button>
+        <div className="inspector__headbtns">
+          <button
+            className="inspector__dup"
+            title="Duplicate node (Ctrl/Cmd+D)"
+            onClick={() => duplicateNode(selectedNodeId)}
+          >
+            Duplicate
+          </button>
+          <button
+            className="inspector__delete"
+            title="Delete node (or select it and press Delete/Backspace)"
+            onClick={() => removeNode(selectedNodeId)}
+          >
+            Delete
+          </button>
+        </div>
       </div>
+      {def.description && <p className="inspector__desc">{def.description}</p>}
       {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
       {editable.map((socket) => {
         const value = node.values[socket.id];

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Graph } from '@/graph/types';
 import type { GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
 import { EvalService } from './EvalService';
-import type { EvalError } from './evaluate';
+import type { EvalError, EvalResult } from './evaluate';
 
 interface EvalState {
   geometry: GeometryData | null;
@@ -45,10 +45,13 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
     };
   }, []);
 
+  const lastChangeRef = useRef(0);
+  const fullTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
     if (!service) return;
-    setState((s) => ({ ...s, evaluating: true }));
-    service.request(graph, seed, (result) => {
+
+    const apply = (result: EvalResult) => {
       setState((prev) =>
         // On error, keep the last good geometry so the viewport never blanks out;
         // otherwise adopt the new result (including a legitimate empty graph).
@@ -56,7 +59,23 @@ export function useEvaluatedGeometry(graph: Graph, seed = 1): EvalState {
           ? { geometry: prev.geometry, material: prev.material, errors: result.errors, evaluating: false }
           : { geometry: result.geometry, material: result.material, errors: [], evaluating: false },
       );
-    });
+    };
+
+    // Rapid successive edits → preview quality for fast feedback; a trailing full-quality
+    // pass runs once edits settle.
+    const now = Date.now();
+    const rapid = now - lastChangeRef.current < 180;
+    lastChangeRef.current = now;
+
+    setState((s) => ({ ...s, evaluating: true }));
+    service.request(graph, seed, rapid ? 'preview' : 'full', apply);
+
+    clearTimeout(fullTimerRef.current);
+    if (rapid) {
+      fullTimerRef.current = setTimeout(() => service.request(graph, seed, 'full', apply), 220);
+    }
+
+    return () => clearTimeout(fullTimerRef.current);
   }, [service, graph, seed]);
 
   return state;

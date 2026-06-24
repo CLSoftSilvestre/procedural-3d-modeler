@@ -12,6 +12,7 @@ export const latheNode: NodeDef = {
   type: 'generator.lathe',
   category: 'Generators',
   label: 'Lathe',
+  description: 'Revolve a 2D profile around the Y axis (solid of revolution).',
   inputs: [
     { id: 'shape', label: 'Shape', type: 'shape' },
     { id: 'segments', label: 'Segments', type: 'number', default: 32, control: { kind: 'slider', min: 3, max: 256, step: 1 } },
@@ -19,12 +20,14 @@ export const latheNode: NodeDef = {
   ],
   outputs: [{ id: 'geometry', label: 'Geometry', type: 'geometry' }],
 
-  evaluate(inputs) {
+  evaluate(inputs, ctx) {
     const profile = shape(inputs);
     if (!profile || profile.points.length < 2) return emptyGeometry();
+    let segments = Math.max(3, Math.floor(num(inputs, 'segments', 32)));
+    if (ctx.quality === 'preview') segments = Math.max(3, Math.ceil(segments * 0.4));
     const geom = new THREE.LatheGeometry(
       toVector2Array(profile),
-      Math.max(3, Math.floor(num(inputs, 'segments', 32))),
+      segments,
       0,
       THREE.MathUtils.degToRad(num(inputs, 'phiLength', 360)),
     );

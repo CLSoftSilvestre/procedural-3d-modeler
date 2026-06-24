@@ -11,6 +11,7 @@ export const materialNode: NodeDef = {
   type: 'material.standard',
   category: 'Material',
   label: 'Material',
+  description: 'A PBR material (standard/physical) for the Output node.',
   inputs: [
     {
       id: 'type',

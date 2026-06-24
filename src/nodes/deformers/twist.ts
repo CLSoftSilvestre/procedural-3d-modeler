@@ -26,6 +26,7 @@ export const twistNode: NodeDef = {
   type: 'deformer.twist',
   category: 'Deformers',
   label: 'Twist',
+  description: 'Rotate vertices around an axis proportionally to their position.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     axisSocket,

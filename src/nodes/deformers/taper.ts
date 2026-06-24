@@ -27,6 +27,7 @@ export const taperNode: NodeDef = {
   type: 'deformer.taper',
   category: 'Deformers',
   label: 'Taper',
+  description: 'Scale the cross-section from 1 to endScale along an axis.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     axisSocket,

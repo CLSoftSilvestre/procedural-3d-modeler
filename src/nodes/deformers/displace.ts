@@ -12,6 +12,7 @@ export const displaceNode: NodeDef = {
   type: 'deformer.displace',
   category: 'Deformers',
   label: 'Displace',
+  description: 'Push vertices along their normals by seeded coherent noise.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     { id: 'strength', label: 'Strength', type: 'number', default: 0.2, control: { kind: 'slider', min: -2, max: 2, step: 0.01 } },

@@ -7,6 +7,7 @@ export const starNode: NodeDef = {
   type: 'curve.star',
   category: 'Curves',
   label: 'Star',
+  description: 'An alternating inner/outer radius 2D profile (gears, stars).',
   inputs: [
     { id: 'points', label: 'Points', type: 'number', default: 5, control: { kind: 'slider', min: 2, max: 32, step: 1 } },
     { id: 'innerRadius', label: 'Inner Radius', type: 'number', default: 0.5, control: { kind: 'slider', min: 0.01, max: 10, step: 0.01 } },

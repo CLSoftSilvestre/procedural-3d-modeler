@@ -8,16 +8,19 @@ import { defaultMaterialSpec, toThreeMaterial, type MaterialSpec } from '@/mater
 interface ViewportProps {
   geometry: GeometryData | null;
   material: MaterialSpec | null;
+  wireframe?: boolean;
+  showGrid?: boolean;
 }
 
 /**
  * three.js viewport. Owns the scene/camera/renderer imperatively; React only feeds it
  * the evaluated geometry. We dogfood three.js here — it is the target runtime.
  */
-export function Viewport({ geometry, material }: ViewportProps) {
+export function Viewport({ geometry, material, wireframe = false, showGrid = true }: ViewportProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<THREE.Mesh | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const gridRef = useRef<THREE.GridHelper | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
 
   // Set up the scene once.
@@ -60,7 +63,9 @@ export function Viewport({ geometry, material }: ViewportProps) {
     controls.enableDamping = true;
     controlsRef.current = controls;
 
-    scene.add(new THREE.GridHelper(10, 10, 0x444450, 0x2a2a30));
+    const grid = new THREE.GridHelper(10, 10, 0x444450, 0x2a2a30);
+    gridRef.current = grid;
+    scene.add(grid);
     scene.add(new THREE.AxesHelper(1.5));
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
@@ -110,13 +115,19 @@ export function Viewport({ geometry, material }: ViewportProps) {
     }
 
     if (geometry) {
-      const mat = toThreeMaterial(material ?? defaultMaterialSpec());
+      const mat = toThreeMaterial(material ?? defaultMaterialSpec()) as THREE.MeshStandardMaterial;
       mat.side = THREE.DoubleSide; // procedural meshes can have open faces
+      if (wireframe) mat.wireframe = true;
       const mesh = new THREE.Mesh(toBufferGeometry(geometry), mat);
       scene.add(mesh);
       meshRef.current = mesh;
     }
-  }, [geometry, material]);
+  }, [geometry, material, wireframe]);
+
+  // Toggle grid visibility without rebuilding the scene.
+  useEffect(() => {
+    if (gridRef.current) gridRef.current.visible = showGrid;
+  }, [showGrid]);
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />;
 }

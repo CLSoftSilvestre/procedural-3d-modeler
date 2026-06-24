@@ -9,6 +9,7 @@ export const extrudeNode: NodeDef = {
   type: 'generator.extrude',
   category: 'Generators',
   label: 'Extrude',
+  description: 'Sweep a 2D profile along Z into a solid, with optional bevel.',
   inputs: [
     { id: 'shape', label: 'Shape', type: 'shape' },
     { id: 'depth', label: 'Depth', type: 'number', default: 1, control: { kind: 'slider', min: 0.01, max: 10, step: 0.01 } },
@@ -20,17 +21,19 @@ export const extrudeNode: NodeDef = {
   ],
   outputs: [{ id: 'geometry', label: 'Geometry', type: 'geometry' }],
 
-  evaluate(inputs) {
+  evaluate(inputs, ctx) {
     const profile = shape(inputs);
     if (!profile || profile.points.length < 3) return emptyGeometry();
     const depth = num(inputs, 'depth', 1);
+    const preview = ctx.quality === 'preview';
     const geom = new THREE.ExtrudeGeometry(toThreeShape(profile), {
       depth,
       steps: Math.max(1, Math.floor(num(inputs, 'steps', 1))),
       bevelEnabled: bool(inputs, 'bevel', false),
       bevelThickness: num(inputs, 'bevelThickness', 0.1),
       bevelSize: num(inputs, 'bevelSize', 0.1),
-      bevelSegments: Math.max(1, Math.floor(num(inputs, 'bevelSegments', 2))),
+      bevelSegments: preview ? 1 : Math.max(1, Math.floor(num(inputs, 'bevelSegments', 2))),
+      curveSegments: preview ? 6 : 12,
     });
     geom.translate(0, 0, -depth / 2); // center along Z
     geom.computeVertexNormals();

@@ -11,6 +11,7 @@ export const booleanNode: NodeDef = {
   type: 'boolean.op',
   category: 'Booleans',
   label: 'Boolean',
+  description: 'Union, subtract, or intersect two meshes (CSG).',
   inputs: [
     { id: 'a', label: 'A', type: 'geometry' },
     { id: 'b', label: 'B', type: 'geometry' },

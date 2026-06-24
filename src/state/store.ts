@@ -12,6 +12,8 @@ interface AppState {
   graph: Graph;
   selectedNodeId: string | null;
   notice: { kind: 'error' | 'info'; message: string } | null;
+  /** In-app clipboard for copy/paste of a node (values only, no edges). */
+  clipboard: GraphNode | null;
 
   // history
   past: Graph[];
@@ -27,6 +29,9 @@ interface AppState {
   removeEdge: (id: string) => void;
   setOutputNode: (id: string | null) => void;
   select: (id: string | null) => void;
+  duplicateNode: (id: string) => string | null;
+  copyNode: (id: string) => void;
+  pasteNode: () => string | null;
   exposeSocket: (nodeId: string, socketId: string) => void;
   unexposeParam: (paramId: string) => void;
   setParamValue: (paramId: string, value: LiteralValue) => void;
@@ -98,6 +103,7 @@ export const useStore = create<AppState>()(
       graph: createEmptyGraph(),
       selectedNodeId: null,
       notice: null,
+      clipboard: null,
       past: [],
       future: [],
       lastEditKey: null,
@@ -170,6 +176,44 @@ export const useStore = create<AppState>()(
         set((s) => {
           s.selectedNodeId = id;
         }),
+
+      duplicateNode: (id) => {
+        const src = useStore.getState().graph.nodes.find((n) => n.id === id);
+        if (!src) return null;
+        const copy: GraphNode = {
+          ...structuredClone(src),
+          id: nextId('node'),
+          position: { x: src.position.x + 30, y: src.position.y + 30 },
+        };
+        set((s) => {
+          pushHistory(s);
+          s.graph.nodes.push(copy);
+          s.selectedNodeId = copy.id;
+        });
+        return copy.id;
+      },
+
+      copyNode: (id) =>
+        set((s) => {
+          const node = s.graph.nodes.find((n) => n.id === id);
+          s.clipboard = node ? structuredClone(current(node)) : s.clipboard;
+        }),
+
+      pasteNode: () => {
+        const clip = useStore.getState().clipboard;
+        if (!clip) return null;
+        const copy: GraphNode = {
+          ...structuredClone(clip),
+          id: nextId('node'),
+          position: { x: clip.position.x + 40, y: clip.position.y + 40 },
+        };
+        set((s) => {
+          pushHistory(s);
+          s.graph.nodes.push(copy);
+          s.selectedNodeId = copy.id;
+        });
+        return copy.id;
+      },
 
       exposeSocket: (nodeId, socketId) =>
         set((s) => {

@@ -3,7 +3,7 @@ import type { MaterialSpec } from '@/material/MaterialData';
 import { mulberry32 } from '@/geometry/rng';
 import type { Edge, Graph, GraphNode, LiteralValue, SocketValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
-import type { ResolvedInputs } from '@/nodes/NodeDef';
+import type { EvalQuality, ResolvedInputs } from '@/nodes/NodeDef';
 import { topoSort } from '@/graph/topology';
 import { fnv1a } from './hash';
 
@@ -59,7 +59,12 @@ export class EvalCache {
  * Topo-sorts the DAG, evaluates each node (reusing cached results by content hash),
  * and threads outputs along edges.
  */
-export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalResult {
+export function evaluateGraph(
+  graph: Graph,
+  seed = 1,
+  cache?: EvalCache,
+  quality: EvalQuality = 'full',
+): EvalResult {
   const errors: EvalError[] = [];
   if (!graph.outputNodeId) return { geometry: null, material: null, errors };
 
@@ -92,7 +97,7 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
       .sort()
       .join('|');
     const hash = fnv1a(
-      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#${upstream}`,
+      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#q${quality}#${upstream}`,
     );
     nodeHashes.set(nodeId, hash);
 
@@ -106,7 +111,7 @@ export function evaluateGraph(graph: Graph, seed = 1, cache?: EvalCache): EvalRe
     }
 
     try {
-      const result = def.evaluate(inputs, { random }) as SocketValue;
+      const result = def.evaluate(inputs, { random, quality }) as SocketValue;
       outputs.set(nodeId, { [outSocket]: result });
       cache?.set(hash, result);
     } catch (err) {

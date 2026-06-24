@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
 import type { Graph } from '@/graph/types';
+import type { EvalQuality } from '@/nodes/NodeDef';
 import type { EvalResult } from './evaluate';
 import type { EvalWorkerApi } from './worker/evalWorker';
 
@@ -14,7 +15,7 @@ export class EvalService {
   private worker: Worker;
   private api: Comlink.Remote<EvalWorkerApi>;
   private running = false;
-  private pending: { graph: Graph; seed: number } | null = null;
+  private pending: { graph: Graph; seed: number; quality: EvalQuality } | null = null;
 
   constructor() {
     this.worker = new Worker(new URL('./worker/evalWorker.ts', import.meta.url), {
@@ -27,8 +28,13 @@ export class EvalService {
    * Request an evaluation. `onResult` fires once with the result for the latest graph.
    * If a newer request arrives first, older callbacks are superseded (not called).
    */
-  request(graph: Graph, seed: number, onResult: (result: EvalResult) => void): void {
-    this.pending = { graph, seed };
+  request(
+    graph: Graph,
+    seed: number,
+    quality: EvalQuality,
+    onResult: (result: EvalResult) => void,
+  ): void {
+    this.pending = { graph, seed, quality };
     if (this.running) return;
     void this.drain(onResult);
   }
@@ -37,9 +43,9 @@ export class EvalService {
     this.running = true;
     try {
       while (this.pending) {
-        const { graph, seed } = this.pending;
+        const { graph, seed, quality } = this.pending;
         this.pending = null;
-        const result = await this.api.evaluate(graph, seed);
+        const result = await this.api.evaluate(graph, seed, quality);
         // Only deliver if nothing newer is queued.
         if (!this.pending) onResult(result);
       }

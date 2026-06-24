@@ -238,6 +238,27 @@ body,
   margin: 0;
   font-size: 14px;
 }
+.inspector__headbtns {
+  display: flex;
+  gap: 6px;
+}
+.inspector__dup {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.inspector__dup:hover {
+  border-color: var(--accent);
+}
+.inspector__desc {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
 .inspector__delete {
   background: rgba(120, 30, 30, 0.6);
   color: #ffd9d9;
@@ -399,6 +420,36 @@ body,
 }
 
 /* viewport */
+.viewport__toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.viewport__toolbar button {
+  background: rgba(31, 31, 38, 0.85);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 9px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.viewport__toolbar button.is-active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.viewport__stats {
+  background: rgba(31, 31, 38, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
 .viewport__errors {
   position: absolute;
   bottom: 10px;

@@ -26,6 +26,7 @@ export const arrayNode: NodeDef = {
   type: 'modifier.array',
   category: 'Modifiers',
   label: 'Array',
+  description: 'Duplicate geometry in a linear or radial pattern and merge the copies.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     {

@@ -22,6 +22,7 @@ export const transformNode: NodeDef = {
   type: 'modifier.transform',
   category: 'Modifiers',
   label: 'Transform',
+  description: 'Translate, rotate (degrees), and scale geometry per axis.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     slider('tx', 'Translate X', 0, 10),

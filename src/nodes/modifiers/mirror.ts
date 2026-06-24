@@ -11,6 +11,7 @@ export const mirrorNode: NodeDef = {
   type: 'modifier.mirror',
   category: 'Modifiers',
   label: 'Mirror',
+  description: 'Reflect geometry across an axis, optionally keeping the original.',
   inputs: [
     { id: 'geometry', label: 'Geometry', type: 'geometry' },
     {

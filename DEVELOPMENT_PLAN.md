@@ -179,7 +179,11 @@
 - [~] Example/template library — 9 built-in starter graphs (Examples menu); any can be
       Saved to JSON. (Faceted Gem, Hollow Pipe, Capsule, Twisted Column, Spinning Propeller +
       the originals.) TODO: thumbnails in the menu, importable community templates.
-- [ ] Versioned graph format + migration strategy
+- [x] Versioned graph format + migration strategy — `src/graph/migrate.ts` runs an ordered
+      migration chain from a file's `version` up to current `GRAPH_VERSION` (now `0.2.0`).
+      Wired into `deserializeGraph` (so Load + autosave restore both upgrade); newer-than-current
+      files load as-is with a warning; versionless/unrecognized upgrade from base. Pure +
+      injectable for tests (8 migration tests).
 - [ ] Telemetry (opt-in), error reporting
 - [~] Packaging/deploy — **PWA/offline done** (vite-plugin-pwa: generated SW precaches the
       app + eval worker for full offline use; installable manifest + icons; "new version →
@@ -247,6 +251,20 @@ booleans, deformers (→ M2).
 ## Session Log
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
+
+### 2026-06-24 — Phase 7: versioned graph format + migration
+- New `src/graph/migrate.ts`: an ordered, pure migration chain. `migrateGraph(raw, migrations?,
+  latest?)` detects a document's `version` and applies each migration from there up to
+  `GRAPH_VERSION`. Bumped `GRAPH_VERSION` 0.1.0 → **0.2.0** with a first migration that
+  normalizes to the per-primitive-transform era (ensures `params`/`outputNodeId` and per-node
+  `values`/`position`). Behaviors: already-current → untouched; versionless/unrecognized →
+  upgrade from base with a warning; newer-than-current → loaded as-is with a "created by a newer
+  version" warning (best-effort forward compat).
+- Wired into `deserializeGraph`, so both **Load** and the autosave **restore** path upgrade old
+  files transparently; structural guards + unknown-node-type rejection still run post-migration.
+- Migrations + target version are injectable, so chaining/start-index logic is unit-tested
+  without inventing fake production migrations. +8 tests (105 total).
+- All checks clean. **Next:** deploy/host + CI, or product-decision items (telemetry, billing).
 
 ### 2026-06-24 — Phase 7: PWA / offline + installable
 - Added `vite-plugin-pwa` (generateSW). The built service worker precaches the app shell, main

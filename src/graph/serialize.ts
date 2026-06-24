@@ -1,4 +1,5 @@
 import { GRAPH_VERSION, type Graph } from './types';
+import { migrateGraph, type RawGraph } from './migrate';
 import { getNodeDef } from '@/nodes/registry';
 
 /** Serialize a graph to a pretty JSON string (the native save format). */
@@ -25,16 +26,15 @@ export function deserializeGraph(json: string): DeserializeResult {
   if (typeof raw !== 'object' || raw === null) {
     return { ok: false, error: 'Graph must be an object' };
   }
-  const g = raw as Partial<Graph>;
-  if (!Array.isArray(g.nodes) || !Array.isArray(g.edges)) {
+  if (!Array.isArray((raw as RawGraph).nodes) || !Array.isArray((raw as RawGraph).edges)) {
     return { ok: false, error: 'Graph is missing nodes/edges arrays' };
   }
 
-  const warnings: string[] = [];
-  if (g.version !== GRAPH_VERSION) {
-    warnings.push(`Graph version ${g.version ?? '(none)'} differs from ${GRAPH_VERSION}`);
-  }
-  for (const node of g.nodes) {
+  // Upgrade older documents to the current schema before validating.
+  const { graph: migrated, warnings } = migrateGraph(raw as RawGraph);
+  const g = migrated as Partial<Graph>;
+
+  for (const node of g.nodes ?? []) {
     if (!getNodeDef(node.type)) {
       return { ok: false, error: `Unknown node type: ${node.type}` };
     }
@@ -42,8 +42,8 @@ export function deserializeGraph(json: string): DeserializeResult {
 
   const graph: Graph = {
     version: GRAPH_VERSION,
-    nodes: g.nodes,
-    edges: g.edges,
+    nodes: g.nodes ?? [],
+    edges: g.edges ?? [],
     params: g.params ?? [],
     outputNodeId: g.outputNodeId ?? null,
   };

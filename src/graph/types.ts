@@ -101,7 +101,7 @@ export interface Graph {
   outputNodeId: string | null;
 }
 
-export const GRAPH_VERSION = '0.1.0';
+export const GRAPH_VERSION = '0.2.0';
 
 export function createEmptyGraph(): Graph {
   return {

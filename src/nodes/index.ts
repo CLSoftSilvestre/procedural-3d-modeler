@@ -6,6 +6,7 @@ import { mirrorNode } from './modifiers/mirror';
 import { displaceNode } from './deformers/displace';
 import { twistNode } from './deformers/twist';
 import { taperNode } from './deformers/taper';
+import { bendNode } from './deformers/bend';
 import { booleanNode } from './booleans/boolean';
 import { polygonNode } from './curves/polygon';
 import { starNode } from './curves/star';
@@ -30,6 +31,7 @@ export function registerBuiltinNodes(): void {
   registerNode(displaceNode);
   registerNode(twistNode);
   registerNode(taperNode);
+  registerNode(bendNode);
   registerNode(booleanNode);
   registerNode(polygonNode);
   registerNode(starNode);

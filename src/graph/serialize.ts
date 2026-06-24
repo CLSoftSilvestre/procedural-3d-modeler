@@ -46,6 +46,7 @@ export function deserializeGraph(json: string): DeserializeResult {
     edges: g.edges ?? [],
     params: g.params ?? [],
     outputNodeId: g.outputNodeId ?? null,
+    notes: g.notes ?? [],
   };
   return { ok: true, graph, warnings };
 }

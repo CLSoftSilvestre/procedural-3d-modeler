@@ -26,7 +26,14 @@
       "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>console.log\\(JSON.stringify\\(JSON.parse\\(s\\),null,2\\)\\)\\)\")",
       "Bash(git check-ignore *)",
       "Bash(DEPLOY_BASE=/procedural-3d-modeler/ npm run build)",
-      "Bash(node -e \"const m=require\\('./dist/manifest.webmanifest'\\);console.log\\('scope',m.scope,'start',m.start_url,'id',m.id,'icon0',m.icons[0].src\\)\")"
+      "Bash(node -e \"const m=require\\('./dist/manifest.webmanifest'\\);console.log\\('scope',m.scope,'start',m.start_url,'id',m.id,'icon0',m.icons[0].src\\)\")",
+      "Bash(node -e \"console.log\\(require\\('three/package.json'\\).version\\)\")",
+      "Bash(node -p \"require\\('./package.json'\\).version\")",
+      "Bash(which rsvg-convert *)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(sort -t'\\(' -k1)",
+      "Bash(node -e \"console.log\\('prettier', require\\('prettier/package.json'\\).version\\)\")",
+      "Bash(sort -k2 -h)"
     ],
     "additionalDirectories": [
       "/tmp",

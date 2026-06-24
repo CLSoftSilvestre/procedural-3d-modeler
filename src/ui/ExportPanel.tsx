@@ -1,7 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '@/state/store';
 import { generateModule, type CodegenTarget } from '@/codegen/generate';
+import { formatCode } from '@/codegen/format';
+import { highlightCode } from '@/codegen/highlight';
 import { downloadGLTF } from '@/export/gltf';
+import { exportSTL, exportOBJ, downloadBlob } from '@/export/mesh';
 import type { GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
 
@@ -11,15 +14,16 @@ interface ExportPanelProps {
   onClose: () => void;
 }
 
-type Tab = 'code' | 'gltf';
+type Tab = 'code' | 'gltf' | 'mesh';
 
-/** Modal: export the current graph as three.js code or as glTF/GLB. */
+/** Modal: export the current graph as three.js code, glTF/GLB, or STL/OBJ mesh. */
 export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
   const graph = useStore((s) => s.graph);
   const [tab, setTab] = useState<Tab>('code');
   const [target, setTarget] = useState<CodegenTarget>('vanilla');
   const [copied, setCopied] = useState(false);
   const [gltfStatus, setGltfStatus] = useState<string | null>(null);
+  const [meshStatus, setMeshStatus] = useState<string | null>(null);
 
   const result = useMemo(() => {
     try {
@@ -29,17 +33,32 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
     }
   }, [graph, target]);
 
+  // Pretty-print the generated code (Prettier is lazy-loaded). Falls back to raw on failure.
+  const [formatted, setFormatted] = useState(result.code);
+  useEffect(() => {
+    if (result.error) return;
+    let cancelled = false;
+    setFormatted(result.code); // show raw immediately, then replace with formatted
+    void formatCode(result.code).then((out) => {
+      if (!cancelled) setFormatted(out);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [result.code, result.error]);
+
+  const codeText = result.error ? '' : formatted;
   const fileExt = target === 'r3f' ? 'tsx' : 'ts';
 
   function copy() {
-    void navigator.clipboard.writeText(result.code).then(() => {
+    void navigator.clipboard.writeText(codeText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
   }
 
   function downloadCode() {
-    const blob = new Blob([result.code], { type: 'text/typescript' });
+    const blob = new Blob([codeText], { type: 'text/typescript' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -59,6 +78,22 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
     }
   }
 
+  function exportMesh(kind: 'stl-binary' | 'stl-ascii' | 'obj') {
+    if (!geometry) return;
+    try {
+      if (kind === 'obj') {
+        downloadBlob(exportOBJ(geometry), 'model.obj');
+        setMeshStatus('Downloaded model.obj');
+      } else {
+        const binary = kind === 'stl-binary';
+        downloadBlob(exportSTL(geometry, binary), 'model.stl');
+        setMeshStatus(`Downloaded model.stl (${binary ? 'binary' : 'ASCII'})`);
+      }
+    } catch (err) {
+      setMeshStatus(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   return (
     <div className="modal__backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -69,6 +104,9 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
             </button>
             <button className={tab === 'gltf' ? 'is-active' : ''} onClick={() => setTab('gltf')}>
               glTF / GLB
+            </button>
+            <button className={tab === 'mesh' ? 'is-active' : ''} onClick={() => setTab('mesh')}>
+              STL / OBJ
             </button>
           </div>
           <div className="modal__actions">
@@ -94,15 +132,19 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
           </div>
         </div>
 
-        {tab === 'code' ? (
-          result.error ? (
+        {tab === 'code' &&
+          (result.error ? (
             <div className="modal__error">⚠ {result.error}</div>
           ) : (
-            <pre className="modal__code">{result.code}</pre>
-          )
-        ) : (
+            <pre
+              className="modal__code"
+              dangerouslySetInnerHTML={{ __html: highlightCode(codeText) }}
+            />
+          ))}
+
+        {tab === 'gltf' && (
           <div className="modal__gltf">
-            <p>Export the current model as a baked glTF asset.</p>
+            <p>Export the current model as a baked glTF asset (geometry + PBR material).</p>
             <div className="modal__actions">
               <button onClick={() => exportGltf(true)} disabled={!geometry}>
                 Download .glb (binary)
@@ -113,6 +155,28 @@ export function ExportPanel({ geometry, material, onClose }: ExportPanelProps) {
             </div>
             {!geometry && <div className="modal__error">No geometry to export — connect an Output.</div>}
             {gltfStatus && <div className="modal__status">{gltfStatus}</div>}
+          </div>
+        )}
+
+        {tab === 'mesh' && (
+          <div className="modal__gltf">
+            <p>
+              Export geometry for 3D printing (STL) or other 3D tools (OBJ). These formats are
+              geometry-only — material and colors aren’t included (use glTF for those).
+            </p>
+            <div className="modal__actions">
+              <button onClick={() => exportMesh('stl-binary')} disabled={!geometry}>
+                Download .stl (binary)
+              </button>
+              <button onClick={() => exportMesh('stl-ascii')} disabled={!geometry}>
+                Download .stl (ASCII)
+              </button>
+              <button onClick={() => exportMesh('obj')} disabled={!geometry}>
+                Download .obj
+              </button>
+            </div>
+            {!geometry && <div className="modal__error">No geometry to export — connect an Output.</div>}
+            {meshStatus && <div className="modal__status">{meshStatus}</div>}
           </div>
         )}
       </div>

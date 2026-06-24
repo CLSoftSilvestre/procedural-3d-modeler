@@ -52,6 +52,9 @@ export interface SocketSpec {
   /** Optional inspector section this input belongs to (e.g. "Transform"). Inputs sharing
    *  a group are rendered together in a collapsible section; ungrouped inputs come first. */
   group?: string;
+  /** Accept multiple incoming edges (fan-in). Resolved to an array of upstream values;
+   *  e.g. the Output's geometry socket merges all connected geometries. */
+  multi?: boolean;
   /** UI hints for the inspector control. */
   control?: {
     kind: 'slider' | 'number' | 'vector' | 'checkbox' | 'text' | 'color' | 'select';
@@ -93,12 +96,27 @@ export interface ExposedParam {
   socketId: string;
 }
 
+/**
+ * A decorative comment / frame placed on the canvas to annotate or group nodes. Purely
+ * visual — ignored by the evaluation engine and code generator.
+ */
+export interface GraphNote {
+  id: string;
+  text: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  color: string;
+}
+
 export interface Graph {
   version: string;
   nodes: GraphNode[];
   edges: Edge[];
   params: ExposedParam[];
   outputNodeId: string | null;
+  /** Optional canvas annotations (comments/frames). Absent in older saved files. */
+  notes?: GraphNote[];
 }
 
 export const GRAPH_VERSION = '0.2.0';
@@ -110,5 +128,6 @@ export function createEmptyGraph(): Graph {
     edges: [],
     params: [],
     outputNodeId: null,
+    notes: [],
   };
 }

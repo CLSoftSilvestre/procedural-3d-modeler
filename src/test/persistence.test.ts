@@ -53,4 +53,16 @@ describe('persistence', () => {
     localStorage.setItem('p3m.autosave.v1', '{ not json');
     expect(loadPersistedGraph()).toBeNull();
   });
+
+  it('round-trips canvas notes and defaults them to [] when absent', async () => {
+    const { loadPersistedGraph } = await import('@/state/persistence');
+    const g = sampleGraph();
+    g.notes = [{ id: 'n1', text: 'Hi', position: { x: 5, y: 6 }, width: 200, height: 120, color: '#6ea8fe' }];
+    localStorage.setItem('p3m.autosave.v1', serializeGraph(g));
+    expect(loadPersistedGraph()!.notes).toEqual(g.notes);
+
+    // A legacy graph with no notes field loads with an empty array.
+    localStorage.setItem('p3m.autosave.v1', serializeGraph(sampleGraph()));
+    expect(loadPersistedGraph()!.notes).toEqual([]);
+  });
 });

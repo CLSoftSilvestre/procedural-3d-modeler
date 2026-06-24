@@ -107,11 +107,23 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
   let geomVar = 'new THREE.BufferGeometry()';
   let matExpr = DEFAULT_MATERIAL;
   if (outNodeId && nodesById.has(outNodeId)) {
-    const geomEdge = graph.edges.find((e) => e.target === outNodeId && e.targetSocket === 'geometry');
+    // Geometry is multi-input: gather every connected geometry and merge if there's >1.
+    const geomVars = graph.edges
+      .filter((e) => e.target === outNodeId && e.targetSocket === 'geometry')
+      .map((e) => outVar.get(e.source)?.[e.sourceSocket])
+      .filter((v): v is string => Boolean(v));
+    if (geomVars.length === 1) {
+      geomVar = geomVars[0]!;
+    } else if (geomVars.length > 1) {
+      const merged = uniqueVar('merged');
+      statements.push(
+        `const ${merged} = BufferGeometryUtils.mergeGeometries([${geomVars.join(', ')}], false);`,
+      );
+      modules.add('three/examples/jsm/utils/BufferGeometryUtils.js');
+      geomVar = merged;
+    }
     const matEdge = graph.edges.find((e) => e.target === outNodeId && e.targetSocket === 'material');
-    const g = geomEdge && outVar.get(geomEdge.source)?.[geomEdge.sourceSocket];
     const m = matEdge && outVar.get(matEdge.source)?.[matEdge.sourceSocket];
-    if (g) geomVar = g;
     if (m) matExpr = m;
   }
 

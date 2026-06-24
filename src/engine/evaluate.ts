@@ -128,8 +128,9 @@ export function evaluateGraph(
 
   const outNode = nodesById.get(graph.outputNodeId);
   if (!outNode) return { geometry: null, material: null, errors };
+  // Geometry is the output node's (merged) evaluated result; material is read off its socket.
+  const geometry = (outputs.get(graph.outputNodeId)?.geometry as GeometryData | undefined) ?? null;
   const outInputs = resolveInputs(outNode, graph.edges, outputs, paramOverrides);
-  const geometry = (outInputs.geometry as GeometryData | undefined) ?? null;
   const material = (outInputs.material as MaterialSpec | undefined) ?? null;
   return { geometry, material, errors };
 }
@@ -161,6 +162,15 @@ function resolveInputs(
   const def = requireNodeDef(node.type);
   const inputs: ResolvedInputs = {};
   for (const socket of def.inputs) {
+    // Multi-input socket: collect all incoming edges into an array of upstream values.
+    if (socket.multi) {
+      const vals = edges
+        .filter((e) => e.target === node.id && e.targetSocket === socket.id)
+        .map((e) => outputs.get(e.source)?.[e.sourceSocket])
+        .filter((v): v is SocketValue => v !== undefined);
+      inputs[socket.id] = vals as unknown as SocketValue;
+      continue;
+    }
     const edge = edges.find((e) => e.target === node.id && e.targetSocket === socket.id);
     const override = paramOverrides.get(`${node.id}:${socket.id}`);
     if (edge) {

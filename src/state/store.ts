@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { current } from 'immer';
 import { createEmptyGraph, GRAPH_VERSION } from '@/graph/types';
-import type { Edge, ExposedParam, Graph, GraphNode, LiteralValue } from '@/graph/types';
+import type { Edge, ExposedParam, Graph, GraphNode, GraphNote, LiteralValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import { validateConnection } from '@/graph/validate';
 
@@ -25,7 +25,7 @@ interface AppState {
   removeNode: (id: string) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   setNodeValue: (id: string, socketId: string, value: number | boolean | string | number[]) => void;
-  setNodeValues: (id: string, values: Record<string, LiteralValue>) => void;
+  setNodeValues: (id: string, values: Record<string, LiteralValue>, coalesceKey?: string) => void;
   addEdge: (edge: Omit<Edge, 'id'>) => void;
   removeEdge: (id: string) => void;
   setOutputNode: (id: string | null) => void;
@@ -33,6 +33,9 @@ interface AppState {
   duplicateNode: (id: string) => string | null;
   copyNode: (id: string) => void;
   pasteNode: () => string | null;
+  addNote: (position: { x: number; y: number }) => string;
+  updateNote: (id: string, patch: Partial<Omit<GraphNote, 'id'>>) => void;
+  removeNote: (id: string) => void;
   exposeSocket: (nodeId: string, socketId: string) => void;
   unexposeParam: (paramId: string) => void;
   setParamValue: (paramId: string, value: LiteralValue) => void;
@@ -46,6 +49,9 @@ interface AppState {
 
 let idCounter = 0;
 const nextId = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${idCounter++}`;
+
+/** Preset colors for canvas notes/frames (cycled by the note's color button). */
+export const NOTE_COLORS = ['#6ea8fe', '#7ddc8a', '#f2c14e', '#f78c6c', '#c792ea', '#9aa0ad'];
 
 function makeNode(type: string, position: { x: number; y: number }): GraphNode {
   const def = requireNodeDef(type);
@@ -145,9 +151,9 @@ export const useStore = create<AppState>()(
           if (node) node.values[socketId] = value as never;
         }),
 
-      setNodeValues: (id, values) =>
+      setNodeValues: (id, values, coalesceKey) =>
         set((s) => {
-          pushHistory(s);
+          pushHistory(s, coalesceKey ?? null);
           const node = s.graph.nodes.find((n) => n.id === id);
           if (!node) return;
           for (const [k, v] of Object.entries(values)) {
@@ -165,11 +171,27 @@ export const useStore = create<AppState>()(
             s.notice = { kind: 'error', message: result.reason };
             return;
           }
-          pushHistory(s);
-          // Enforce single connection per target socket.
-          s.graph.edges = s.graph.edges.filter(
-            (e) => !(e.target === edge.target && e.targetSocket === edge.targetSocket),
+          const targetDef = requireNodeDef(
+            s.graph.nodes.find((n) => n.id === edge.target)!.type,
           );
+          const socket = targetDef.inputs.find((i) => i.id === edge.targetSocket);
+          if (socket?.multi) {
+            // Fan-in socket: keep existing edges, just avoid an exact duplicate.
+            const dup = s.graph.edges.some(
+              (e) =>
+                e.target === edge.target &&
+                e.targetSocket === edge.targetSocket &&
+                e.source === edge.source &&
+                e.sourceSocket === edge.sourceSocket,
+            );
+            if (dup) return;
+          } else {
+            // Enforce single connection per target socket.
+            s.graph.edges = s.graph.edges.filter(
+              (e) => !(e.target === edge.target && e.targetSocket === edge.targetSocket),
+            );
+          }
+          pushHistory(s);
           s.graph.edges.push({ ...edge, id: nextId('edge') });
           s.notice = null;
         }),
@@ -228,6 +250,42 @@ export const useStore = create<AppState>()(
         });
         return copy.id;
       },
+
+      addNote: (position) => {
+        const note: GraphNote = {
+          id: nextId('note'),
+          text: '',
+          position,
+          width: 240,
+          height: 150,
+          color: NOTE_COLORS[0]!,
+        };
+        set((s) => {
+          pushHistory(s);
+          if (!s.graph.notes) s.graph.notes = [];
+          s.graph.notes.push(note);
+        });
+        return note.id;
+      },
+
+      updateNote: (id, patch) =>
+        set((s) => {
+          if (!s.graph.notes) return;
+          const note = s.graph.notes.find((n) => n.id === id);
+          if (!note) return;
+          // Coalesce rapid text/drag/resize edits into one undo step.
+          const key = `note:${id}:${Object.keys(patch).join(',')}`;
+          pushHistory(s, key);
+          Object.assign(note, patch);
+        }),
+
+      removeNote: (id) =>
+        set((s) => {
+          if (!s.graph.notes) return;
+          pushHistory(s);
+          s.graph.notes = s.graph.notes.filter((n) => n.id !== id);
+          if (s.selectedNodeId === id) s.selectedNodeId = null;
+        }),
 
       exposeSocket: (nodeId, socketId) =>
         set((s) => {

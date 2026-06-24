@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { useStore } from '@/state/store';
 import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
 import { nodeDefsByCategory, getNodeDef } from '@/nodes/registry';
 import { downloadGraph, deserializeGraph } from '@/graph/serialize';
 import { EXAMPLES, getExample } from '@/examples';
-import { Viewport } from '@/viewport/Viewport';
+import { Viewport, type ViewportHandle, type GizmoMode, type GizmoTransform } from '@/viewport/Viewport';
+import { hasTransformSockets, TRANSFORM_DEFAULTS } from '@/nodes/transformShared';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
-import { ExportPanel } from '@/ui/ExportPanel';
-import { AboutModal } from '@/ui/AboutModal';
+// Lazy-loaded: the export panel pulls in the glTF/STL/OBJ exporters; about/onboarding are
+// only shown on demand. Keeping them out of the initial bundle speeds first load.
+const ExportPanel = lazy(() => import('@/ui/ExportPanel').then((m) => ({ default: m.ExportPanel })));
+const AboutModal = lazy(() => import('@/ui/AboutModal').then((m) => ({ default: m.AboutModal })));
+const ProjectsModal = lazy(() =>
+  import('@/ui/ProjectsModal').then((m) => ({ default: m.ProjectsModal })),
+);
 import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
 import { Splitter } from '@/ui/Splitter';
@@ -20,8 +26,12 @@ import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
 import { NodeTooltip } from '@/ui/NodeTooltip';
 import { DND_NODE_MIME } from '@/ui/dnd';
 import type { NodeDef } from '@/nodes/NodeDef';
-import { WelcomeModal, Tour } from '@/ui/Onboarding';
 import { hasOnboarded, markOnboarded } from '@/ui/tour';
+
+const WelcomeModal = lazy(() =>
+  import('@/ui/Onboarding').then((m) => ({ default: m.WelcomeModal })),
+);
+const Tour = lazy(() => import('@/ui/Onboarding').then((m) => ({ default: m.Tour })));
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
@@ -96,7 +106,7 @@ function NodePalette() {
   );
 }
 
-function Toolbar({ onExport }: { onExport: () => void }) {
+function Toolbar({ onExport, onProjects }: { onExport: () => void; onProjects: () => void }) {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.past.length > 0);
@@ -151,6 +161,9 @@ function Toolbar({ onExport }: { onExport: () => void }) {
       <button onClick={() => fileRef.current?.click()} title="Load graph JSON">
         <Icon name="load" /> Load
       </button>
+      <button onClick={onProjects} title="Projects — save/open local models">
+        <Icon name="folder" /> Projects
+      </button>
       <input
         ref={fileRef}
         type="file"
@@ -193,13 +206,49 @@ export function App() {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
+  const setNotice = useStore((s) => s.setNotice);
   const loadGraph = useStore((s) => s.loadGraph);
   const { layout, update } = useLayout();
   const centerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<ViewportHandle>(null);
   const [showExport, setShowExport] = useState(false);
+  const [showProjects, setShowProjects] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !hasOnboarded());
   const [tourOpen, setTourOpen] = useState(false);
+  const [gizmoMode, setGizmoMode] = useState<GizmoMode>('translate');
+  const dragKeyRef = useRef<string | null>(null);
+
+  const selectedNode = useStore((s) => s.graph.nodes.find((n) => n.id === s.selectedNodeId));
+  const showGizmo = useMemo(
+    () => (selectedNode ? hasTransformSockets(getNodeDef(selectedNode.type)?.inputs ?? []) : false),
+    [selectedNode],
+  );
+  const gizmo = useMemo<GizmoTransform | null>(() => {
+    if (!selectedNode || !showGizmo) return null;
+    const v = selectedNode.values;
+    const n = (id: string) => (typeof v[id] === 'number' ? (v[id] as number) : TRANSFORM_DEFAULTS[id]!);
+    return {
+      t: [n('tx'), n('ty'), n('tz')],
+      r: [n('rx'), n('ry'), n('rz')],
+      s: [n('sx'), n('sy'), n('sz')],
+    };
+  }, [selectedNode, showGizmo]);
+
+  const round = (x: number) => Math.round(x * 1000) / 1000;
+  function onGizmoChange(next: GizmoTransform) {
+    const id = useStore.getState().selectedNodeId;
+    if (!id) return;
+    useStore.getState().setNodeValues(
+      id,
+      {
+        tx: round(next.t[0]), ty: round(next.t[1]), tz: round(next.t[2]),
+        rx: round(next.r[0]), ry: round(next.r[1]), rz: round(next.r[2]),
+        sx: round(next.s[0]), sy: round(next.s[1]), sz: round(next.s[2]),
+      },
+      dragKeyRef.current ?? undefined,
+    );
+  }
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -234,12 +283,50 @@ export function App() {
     [errors],
   );
 
+  function saveScreenshot() {
+    const url = viewportRef.current?.capturePNG();
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'model.png';
+    a.click();
+  }
+
+  /** Downscale the current viewport render to a small JPEG for a project thumbnail. */
+  function captureThumbnail(): Promise<string | null> {
+    const full = viewportRef.current?.capturePNG();
+    if (!full) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const w = 240;
+        const h = Math.max(1, Math.round((img.height / img.width) * w));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = () => resolve(null);
+      img.src = full;
+    });
+  }
+
   function quickStartBox() {
     const s = useStore.getState();
     const boxId = s.addNode('primitive.box', { x: 120, y: 90 });
     const outId = s.addNode('output.mesh', { x: 440, y: 90 });
     s.addEdge({ source: boxId, sourceSocket: 'geometry', target: outId, targetSocket: 'geometry' });
   }
+
+  // Auto-dismiss transient info notices; errors stay until dismissed manually.
+  useEffect(() => {
+    if (notice?.kind !== 'info') return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice, setNotice]);
 
   // Keyboard shortcuts: undo/redo + duplicate/copy/paste.
   useEffect(() => {
@@ -271,6 +358,22 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [undo, redo]);
 
+  // Gizmo mode shortcuts (W/E/R), like common 3D tools — only while the gizmo is shown.
+  useEffect(() => {
+    if (!showGizmo) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'w') setGizmoMode('translate');
+      else if (e.key === 'e') setGizmoMode('rotate');
+      else if (e.key === 'r') setGizmoMode('scale');
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showGizmo]);
+
   return (
     <div className="app">
       <header className="app__header">
@@ -292,7 +395,7 @@ export function App() {
             <span className="app__sub">three.js generator</span>
           </div>
         </button>
-        <Toolbar onExport={() => setShowExport(true)} />
+        <Toolbar onExport={() => setShowExport(true)} onProjects={() => setShowProjects(true)} />
         <span className="app__stats">
           {evaluating && <span className="app__busy">evaluating…</span>}
           {geometry ? `${geometry.metadata.triCount.toLocaleString()} tris` : 'no output'}
@@ -302,7 +405,14 @@ export function App() {
         </button>
       </header>
 
-      {notice && <div className={`app__notice app__notice--${notice.kind}`}>{notice.message}</div>}
+      {notice && (
+        <div className={`app__notice app__notice--${notice.kind}`}>
+          <span className="app__notice-msg">{notice.message}</span>
+          <button className="app__notice-x" onClick={() => setNotice(null)} aria-label="Dismiss" title="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="app__body" ref={centerRef}>
         {layout.leftOpen ? (
@@ -368,20 +478,59 @@ export function App() {
           <section className="app__viewport" data-tour="viewport">
             <div className="viewport__toolbar">
               <button
-                className={wireframe ? 'is-active' : ''}
+                className={`viewport__iconbtn${wireframe ? ' is-active' : ''}`}
                 onClick={() => setWireframe((v) => !v)}
                 title="Toggle wireframe"
+                aria-label="Toggle wireframe"
               >
-                Wireframe
+                <Icon name="wireframe" size={16} />
               </button>
               <button
-                className={showGrid ? 'is-active' : ''}
+                className={`viewport__iconbtn${showGrid ? ' is-active' : ''}`}
                 onClick={() => setShowGrid((v) => !v)}
                 title="Toggle grid"
+                aria-label="Toggle grid"
               >
-                Grid
+                <Icon name="grid" size={16} />
               </button>
               <LightsControl lighting={lighting} onChange={setLighting} />
+              {showGizmo && (
+                <span className="viewport__gizmomode">
+                  <button
+                    className={gizmoMode === 'translate' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('translate')}
+                    title="Move (W)"
+                    aria-label="Move"
+                  >
+                    <Icon name="move" size={16} />
+                  </button>
+                  <button
+                    className={gizmoMode === 'rotate' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('rotate')}
+                    title="Rotate (E)"
+                    aria-label="Rotate"
+                  >
+                    <Icon name="rotate" size={16} />
+                  </button>
+                  <button
+                    className={gizmoMode === 'scale' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('scale')}
+                    title="Scale (R)"
+                    aria-label="Scale"
+                  >
+                    <Icon name="scale" size={16} />
+                  </button>
+                </span>
+              )}
+              <button
+                className="viewport__iconbtn"
+                onClick={saveScreenshot}
+                disabled={!geometry}
+                title="Save viewport as PNG"
+                aria-label="Save viewport as PNG"
+              >
+                <Icon name="camera" size={16} />
+              </button>
               {animated && (
                 <button
                   className={playing ? 'is-active' : ''}
@@ -399,11 +548,21 @@ export function App() {
               )}
             </div>
             <Viewport
+              ref={viewportRef}
               geometry={geometry}
               material={material}
               wireframe={wireframe}
               showGrid={showGrid}
               lighting={lighting}
+              gizmo={gizmo}
+              gizmoMode={gizmoMode}
+              onGizmoStart={() => {
+                dragKeyRef.current = `gizmo:${useStore.getState().selectedNodeId}:${Date.now()}`;
+              }}
+              onGizmoChange={onGizmoChange}
+              onGizmoEnd={() => {
+                dragKeyRef.current = null;
+              }}
             />
             {!geometry && graph.nodes.length > 0 && errors.length === 0 && (
               <div className="viewport__hint">Connect geometry into an Output node to see it here.</div>
@@ -461,24 +620,37 @@ export function App() {
         )}
       </div>
 
-      {showExport && (
-        <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
-      )}
-      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
-      {showWelcome && (
-        <WelcomeModal
-          onStartTour={() => {
-            markOnboarded();
-            setShowWelcome(false);
-            setTourOpen(true);
-          }}
-          onClose={() => {
-            markOnboarded();
-            setShowWelcome(false);
-          }}
-        />
-      )}
-      {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
+      <Suspense fallback={null}>
+        {showExport && (
+          <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
+        )}
+        {showProjects && (
+          <ProjectsModal
+            captureThumbnail={captureThumbnail}
+            onOpen={(g, name) => {
+              loadGraph(g);
+              setShowProjects(false);
+              useStore.getState().setNotice({ kind: 'info', message: `Opened “${name}”` });
+            }}
+            onClose={() => setShowProjects(false)}
+          />
+        )}
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+        {showWelcome && (
+          <WelcomeModal
+            onStartTour={() => {
+              markOnboarded();
+              setShowWelcome(false);
+              setTourOpen(true);
+            }}
+            onClose={() => {
+              markOnboarded();
+              setShowWelcome(false);
+            }}
+          />
+        )}
+        {tourOpen && <Tour onClose={() => setTourOpen(false)} />}
+      </Suspense>
     </div>
   );
 }

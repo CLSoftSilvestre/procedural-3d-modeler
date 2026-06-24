@@ -253,6 +253,152 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Notice bar: auto-dismiss + dismiss button
+- The top notice bar no longer sticks. **Info** notices (e.g. "Opened <project>") auto-clear after
+  4s; **errors** persist. Every notice now has an **×** dismiss button. App-wide fix. Checks clean.
+
+### 2026-06-24 — Export polish: syntax highlighting
+- Added a **zero-dependency** highlighter (`src/codegen/highlight.ts`): tokenizes comments/
+  strings/numbers/keywords/Capitalized-types and wraps them in `<span class="hl-*">` (escaped
+  HTML, injected via `dangerouslySetInnerHTML`). Export code view is now colored (Tokyo-Night-ish
+  palette in CSS). +3 tests (118 total). All checks clean.
+- (Re: Prettier — it formats, it doesn't color; on tidy codegen the change is subtle, mainly
+  long-line wrapping like Transform matrix calls + quote normalization.)
+
+### 2026-06-24 — Export polish: Prettier formatting
+- The Export panel now pretty-prints the generated three.js / R3F code with Prettier
+  (`src/codegen/format.ts`, parser `babel-ts` so it handles vanilla JS + R3F JSX). Copy/Download
+  use the formatted text; falls back to raw on any failure.
+- Prettier (standalone + babel + estree parsers, ~600 kB) is **dynamically imported**, so it
+  splits into its own lazy chunks loaded only when formatting — zero initial-bundle impact.
+- Moved `prettier` from devDependencies → dependencies (now imported at runtime). +3 format tests
+  (115 total). All checks clean.
+
+### 2026-06-24 — Multi-input Output (merge several geometries)
+- Added `SocketSpec.multi` (fan-in). The **Output node's geometry socket is now multi-input**:
+  connect several geometries and they're **merged** into one mesh — assembling parts without
+  chaining Boolean nodes. (Merge = concatenation; visually = union for separate parts, far
+  cheaper/robust. The Boolean node remains for true watertight CSG of overlapping solids.)
+- Engine: `resolveInputs` returns an array for `multi` sockets; `output.evaluate` merges via
+  `mergeGeometriesData`; the final geometry now comes from the output's evaluated result.
+- Store: `addEdge` keeps existing edges for multi sockets (dedupes exact duplicates) instead of
+  enforcing one-per-socket. Codegen: gathers all geometry edges and emits
+  `BufferGeometryUtils.mergeGeometries([...], false)` when >1. Parity-tested (two boxes → 24 tris).
+- 112 tests; all checks clean.
+
+### 2026-06-24 — Gizmo mode buttons → icons
+- Move/Rotate/Scale in the viewport gizmo toolbar are now icons (new `move`/`rotate`/`scale`
+  icons) with `title` + `aria-label`; segmented buttons made square/centered. All checks clean.
+
+### 2026-06-24 — Performance: code-splitting
+- Lazy-load on-demand UI via `React.lazy` + `Suspense`: **ExportPanel** (pulls in the
+  glTF/STL/OBJ exporters, ~49 kB), **AboutModal**, onboarding **WelcomeModal/Tour**.
+- `build.rollupOptions.output.manualChunks` splits **three** (~536 kB) and **@xyflow/react**
+  (~326 kB) into their own vendor chunks (parallel download + cached across deploys).
+- Net: the single ~1,142 kB app bundle became app `index` **~227 kB** + cached vendor chunks;
+  exporters/modals load only when opened. (CSG already lived in the eval-worker chunk.)
+
+### 2026-06-24 — Projects: local multi-project manager
+- New `src/state/projects.ts` (localStorage `p3m.projects.v1`): `getProjects` (newest-first),
+  `saveProject` (upsert; returns false on quota), `deleteProject`, `renameProject`. Each
+  **Project** = {id, name, graph, thumbnail (small JPEG dataURL), updatedAt}. +2 tests (111 total).
+- `ProjectsModal` (lazy): name field + **Save current**, and a card grid (thumbnail/name/date)
+  with Open, Overwrite-with-current, Duplicate, Rename, Delete. Opened from a new toolbar
+  **Projects** button. Thumbnails come from the viewport via `captureThumbnail()` (downscaled to
+  240px JPEG). Distinct from the rolling autosave and Save/Load-to-file. Added `folder`/`edit` icons.
+
+### 2026-06-24 — Tooltip thumbnails for the new nodes
+- Added dedicated `NodeThumbnail` line-art for the new nodes (were hitting the generic fallback):
+  capsule (pill), circle (disc), ring (annulus, evenodd hole), torus knot (interlocked loops),
+  tetra/octa/dodeca/icosahedron (faceted wireframes), and Bend (a bar curving into an arc).
+  Renamed the per-type map `PRIMITIVES` → `BY_TYPE` (now also holds the bend deformer).
+- All checks clean.
+
+### 2026-06-24 — More geometry: 8 primitives + Bend deformer
+- New primitives via the existing factory (all inherit built-in transform): **Capsule, Circle,
+  Ring, Torus Knot, Tetrahedron, Octahedron, Dodecahedron, Icosahedron** (6 → **14** primitives).
+  Added a `detail()` param helper (LOD-reduced like segment counts) for the polyhedra.
+- New **Bend** deformer: like Twist but rotates about a perpendicular axis (cyclic x→y→z→x), so
+  geometry curls into an arc; eval via `deformGeometry`, codegen mirrors the loop (parity-tested).
+- Registry now **31** nodes. Parity tests cover every new primitive + bend; node-count test updated.
+- All checks clean (109 tests). Deferred (need more than the numeric factory): Tube (path),
+  3D Text (font asset), Bezier/spline curve, Subdivide (no core modifier).
+
+### 2026-06-24 — Viewport toolbar: icon-only buttons
+- Wireframe / Grid / Lights / PNG are now **icon-only** (with `title` + `aria-label` tooltips):
+  added `wireframe`, `grid`, `sun` icons; PNG reuses `camera`. New `.viewport__iconbtn` style
+  (square, stroke icons, accent active state). LightsControl button became the sun icon.
+- All checks clean (109 tests).
+
+### 2026-06-24 — Wider export: STL + OBJ (3D printing / DCC)
+- New `src/export/mesh.ts` (`exportSTL` binary/ASCII, `exportOBJ`, `downloadBlob`) via three's
+  STL/OBJ exporters. Added an **STL / OBJ** tab to the Export modal: STL binary, STL ASCII, OBJ
+  downloads with status + empty-state guard. Geometry-only formats (noted in the UI; use glTF for
+  materials). +3 tests (binary STL exact byte size, ASCII facets, OBJ verts/faces) → 109 total.
+- Note: binary STL `DataView` cast to `BlobPart` (TS narrows its buffer to ArrayBufferLike).
+- This opens the 3D-printing / DCC interchange use case for the standalone app.
+
+### 2026-06-24 — Show app version in About modal
+- Bumped `package.json` version 0.0.0 → **1.0.0** (live, feature-complete) and inject it via Vite
+  `define: { __APP_VERSION__ }` (read from package.json; declared in `vite-env.d.ts`). About modal
+  shows a `v1.0.0` chip beside the "Early Access" badge in the hero. All checks clean.
+
+### 2026-06-24 — Editor & viewport UX (batch 4): transform gizmo
+- Selecting a node that has transform sockets (any primitive or the Transform modifier) shows a
+  three `TransformControls` gizmo in the viewport. It drives an **invisible proxy** Object3D;
+  on `objectChange` the proxy's decomposed TRS (Euler 'XYZ' → degrees) is written back to the
+  node's `tx/ty/tz · rx/ry/rz · sx/sy/sz` via `setNodeValues(..., coalesceKey)` so a whole drag
+  is **one undo step**. `dragging-changed` disables OrbitControls while dragging.
+- Math note: our `composeMatrix` is `T*R*S` with Euler 'XYZ'; the proxy uses the same order, and
+  world-space gizmo rotation premultiplies the quaternion exactly as our matrix does — so reading
+  the proxy back round-trips correctly (verified for centered primitives and the Transform node).
+- Modes Move/Rotate/Scale via toolbar buttons + **W/E/R** keys (only while the gizmo is shown).
+  Gizmo syncs from store values (so inspector edits move it too) but **skips sync while dragging**
+  to avoid fighting the re-evaluated values. Screenshot hides the gizmo helper.
+- Editor/viewport UX bundle (minimap, right-click add, screenshot, minimap toggle, view gizmo,
+  notes/frames, transform gizmo) is now **complete**. 106 tests; all checks clean.
+
+### 2026-06-24 — Editor & viewport UX (batch 3): node comments / frames
+- Added decorative **notes/frames**: a new optional `Graph.notes: GraphNote[]` (id/text/position/
+  width/height/color) that the engine, codegen, topo and validate fully ignore. Store actions
+  `addNote`/`updateNote`/`removeNote` (history-coalesced text/drag/resize). Defaulted to `[]` on
+  load (serialize) and in `createEmptyGraph`; round-trip + legacy-absent test added.
+- `NoteNode` (React Flow custom node): resizable (`NodeResizer`), editable title, cycle-color
+  button, delete; **dragged by its title bar** and rendered **behind** real nodes (zIndex/order)
+  so it frames them without intercepting their interactions. Added via the right-click menu
+  (“＋ Note / frame”) at the cursor.
+- Change routing in `onNodesChange` distinguishes note ids (position→updateNote, dimensions→size,
+  remove→removeNote) from real nodes. Selecting a note doesn't break the Inspector (it just shows
+  the empty state). Kept the field **optional** so existing graph literals/tests need no changes.
+- 106 tests; all checks clean. **Next:** transform gizmo (bind to a selected primitive's
+  built-in transform sockets).
+
+### 2026-06-24 — Editor & viewport UX (batch 2): minimap toggle + view gizmo
+- **Minimap toggle:** a `ControlButton` (map icon) next to the zoom controls shows/hides the
+  minimap; state persisted (`p3m.minimap.v1`), active state styled in accent. Scoped CSS so the
+  stroke-based icon isn't force-filled like the default control icons.
+- **View-navigation gizmo:** integrated three's `ViewHelper` (corner axis cube) — click an axis
+  to snap the camera to top/bottom/front/back/left/right (CAD-style). Required `renderer.autoClear
+  = false` + manual `clear()`; animate loop now updates the helper (clock delta) and calls
+  `viewHelper.render()`; `pointerup` → `handleClick`. `capturePNG()` clears then renders scene
+  only, so the gizmo never appears in screenshots. Disposed on unmount.
+- All checks clean (105 tests). (This was a prerequisite the user asked for before node
+  comments/frames + the transform gizmo.)
+
+### 2026-06-24 — Editor & viewport UX (batch 1): minimap, right-click add, screenshot
+- **MiniMap** in the graph editor (category-colored nodes, pannable/zoomable, themed).
+- **Right-click the canvas → add-node menu** at the cursor (`GraphContextMenu`): filterable,
+  Enter adds the first match, closes on pick/Esc/outside-click. Node drops at the click position.
+- **Viewport screenshot:** `Viewport` is now a `forwardRef` exposing `capturePNG()` (renders a
+  frame synchronously, returns a PNG data URL); a **PNG** button in the viewport toolbar downloads
+  `model.png`. Added `camera` icon.
+- Deferred (own session, noted to user): **node comments/frames** (needs a graph data-model
+  addition, e.g. `graph.notes[]`) and a **transform gizmo** (awkward today — we render one merged
+  output mesh, not per-node objects; the clean version maps the gizmo to a selected primitive's
+  built-in transform sockets).
+- All checks clean (105 tests). Project re-scoped: **free standalone app, no telemetry/billing**
+  (see memory) — Phase 7 business items dropped; future work = features/UX/perf.
+
 ### 2026-06-24 — Edge deletion + GitHub Pages deploy/CI
 - **Delete connections.** New `DeletableEdge` (custom React Flow edge) shows a “×” button at
   the edge midpoint on hover/selection (wide invisible hit-path for easy hovering); click removes

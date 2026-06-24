@@ -65,7 +65,21 @@ describe('codegen parity (generated code === live evaluation)', () => {
   });
 
   it('all primitives', () => {
-    for (const type of ['primitive.sphere', 'primitive.cylinder', 'primitive.cone', 'primitive.torus', 'primitive.plane']) {
+    for (const type of [
+      'primitive.sphere',
+      'primitive.cylinder',
+      'primitive.cone',
+      'primitive.torus',
+      'primitive.plane',
+      'primitive.capsule',
+      'primitive.circle',
+      'primitive.ring',
+      'primitive.torusKnot',
+      'primitive.tetrahedron',
+      'primitive.octahedron',
+      'primitive.dodecahedron',
+      'primitive.icosahedron',
+    ]) {
       expectParity(makeGraph([{ id: 'a', type }, { id: 'out', type: 'output.mesh' }], [edge('e', 'a', 'out')]));
     }
   });
@@ -141,11 +155,12 @@ describe('codegen parity (generated code === live evaluation)', () => {
     );
   });
 
-  it('deformers (twist, taper, displace)', () => {
+  it('deformers (twist, taper, displace, bend)', () => {
     const cases = [
       { type: 'deformer.twist', values: { axis: 'y', angle: 60 } },
       { type: 'deformer.taper', values: { axis: 'y', endScale: 0.3 } },
       { type: 'deformer.displace', values: { strength: 0.4, frequency: 2, seed: 9 } },
+      { type: 'deformer.bend', values: { axis: 'y', angle: 40 } },
     ];
     for (const c of cases) {
       expectParity(
@@ -182,6 +197,23 @@ describe('codegen parity (generated code === live evaluation)', () => {
         [{ id: 'e1', source: 'p', sourceSocket: 'shape', target: 'g', targetSocket: 'shape' }, edge('e2', 'g', 'out')],
       ),
     );
+  });
+
+  it('multiple geometries merged into the output', () => {
+    // Two boxes wired into the (multi-input) output socket should merge — eval and codegen.
+    const graph = makeGraph(
+      [
+        { id: 'a', type: 'primitive.box', values: { tx: -1 } },
+        { id: 'b', type: 'primitive.box', values: { tx: 1 } },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [edge('e1', 'a', 'out'), edge('e2', 'b', 'out')],
+    );
+    const evaluated = evaluateGraph(graph);
+    expect(evaluated.errors).toHaveLength(0);
+    // Merged tri count = sum of both boxes (12 each).
+    expect(evaluated.geometry!.metadata.triCount).toBe(24);
+    expectParity(graph);
   });
 
   it('boolean (CSG subtract)', () => {

@@ -1328,6 +1328,18 @@ body,
 .react-flow__controls-button svg {
   fill: var(--text);
 }
+/* Minimap toggle uses a stroke-based icon and an active (accent) state. */
+.react-flow__controls-button.minimap-toggle {
+  color: var(--text);
+}
+.react-flow__controls-button.minimap-toggle svg {
+  fill: none;
+  stroke: currentColor;
+}
+.react-flow__controls-button.minimap-toggle.is-active {
+  background: var(--accent);
+  color: #0c1426;
+}
 
 /* edges */
 .react-flow__edge-path {

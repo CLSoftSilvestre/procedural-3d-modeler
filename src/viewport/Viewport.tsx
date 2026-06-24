@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { ViewHelper } from 'three/examples/jsm/helpers/ViewHelper.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { GeometryData } from '@/geometry/GeometryData';
 import { toBufferGeometry } from '@/geometry/GeometryData';
@@ -53,7 +54,8 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
       const scene = sceneRef.current;
       const camera = cameraRef.current;
       if (!renderer || !scene || !camera) return null;
-      renderer.render(scene, camera);
+      renderer.clear();
+      renderer.render(scene, camera); // scene only — exclude the view gizmo from the capture
       return renderer.domElement.toDataURL('image/png');
     },
   }));
@@ -109,6 +111,14 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
     controls.enableDamping = true;
     controlsRef.current = controls;
 
+    // Interactive view-navigation gizmo (corner axis cube): click an axis to snap to
+    // top/bottom/front/back/left/right, like a CAD viewport. It draws over the scene, so
+    // disable auto-clear and clear manually each frame.
+    const viewHelper = new ViewHelper(camera, renderer.domElement);
+    renderer.autoClear = false;
+    const onPointerUp = (e: PointerEvent) => viewHelper.handleClick(e);
+    renderer.domElement.addEventListener('pointerup', onPointerUp);
+
     const grid = new THREE.GridHelper(10, 10, 0x444450, 0x2a2a30);
     gridRef.current = grid;
     scene.add(grid);
@@ -125,10 +135,15 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
     fillRef.current = fill;
 
     let raf = 0;
+    const clock = new THREE.Clock();
     const animate = () => {
       raf = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      if (viewHelper.animating) viewHelper.update(delta);
       controls.update();
+      renderer.clear();
       renderer.render(scene, camera);
+      viewHelper.render(renderer); // gizmo overlay (restores the viewport itself)
     };
     animate();
 
@@ -144,6 +159,8 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
     return () => {
       cancelAnimationFrame(raf);
       observer.disconnect();
+      renderer.domElement.removeEventListener('pointerup', onPointerUp);
+      viewHelper.dispose();
       controls.dispose();
       envTexture.dispose();
       renderer.dispose();

@@ -253,6 +253,18 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Editor & viewport UX (batch 2): minimap toggle + view gizmo
+- **Minimap toggle:** a `ControlButton` (map icon) next to the zoom controls shows/hides the
+  minimap; state persisted (`p3m.minimap.v1`), active state styled in accent. Scoped CSS so the
+  stroke-based icon isn't force-filled like the default control icons.
+- **View-navigation gizmo:** integrated three's `ViewHelper` (corner axis cube) — click an axis
+  to snap the camera to top/bottom/front/back/left/right (CAD-style). Required `renderer.autoClear
+  = false` + manual `clear()`; animate loop now updates the helper (clock delta) and calls
+  `viewHelper.render()`; `pointerup` → `handleClick`. `capturePNG()` clears then renders scene
+  only, so the gizmo never appears in screenshots. Disposed on unmount.
+- All checks clean (105 tests). (This was a prerequisite the user asked for before node
+  comments/frames + the transform gizmo.)
+
 ### 2026-06-24 — Editor & viewport UX (batch 1): minimap, right-click add, screenshot
 - **MiniMap** in the graph editor (category-colored nodes, pannable/zoomable, themed).
 - **Right-click the canvas → add-node menu** at the cursor (`GraphContextMenu`): filterable,

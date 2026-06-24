@@ -3,6 +3,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   Handle,
   Position,
@@ -25,6 +26,9 @@ import { getNodeDef, requireNodeDef } from '@/nodes/registry';
 import { isConnectableType } from '@/graph/types';
 import { categoryColor } from './categoryColors';
 import { GraphContextMenu } from './GraphContextMenu';
+import { Icon } from './Icon';
+
+const MINIMAP_KEY = 'p3m.minimap.v1';
 
 /** Generic node renderer driven by the node definition's sockets. */
 function GraphNodeView({ id, data }: NodeProps) {
@@ -149,6 +153,24 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const [menu, setMenu] = useState<{ x: number; y: number; flowX: number; flowY: number } | null>(
     null,
   );
+  const [showMinimap, setShowMinimap] = useState(() => {
+    try {
+      return localStorage.getItem(MINIMAP_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleMinimap = useCallback(() => {
+    setShowMinimap((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(MINIMAP_KEY, next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const nodeTypes = useMemo(() => ({ proc: GraphNodeView }), []);
   const edgeTypes = useMemo(() => ({ deletable: DeletableEdge }), []);
@@ -259,14 +281,24 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       proOptions={{ hideAttribution: true }}
     >
       <Background color="#2a2a30" gap={16} />
-      <Controls />
-      <MiniMap
-        pannable
-        zoomable
-        className="graph-minimap"
-        nodeColor={(n) => categoryColor(getNodeDef((n.data as { type: string }).type)?.category ?? '')}
-        maskColor="rgba(0,0,0,0.5)"
-      />
+      <Controls>
+        <ControlButton
+          onClick={toggleMinimap}
+          title={showMinimap ? 'Hide minimap' : 'Show minimap'}
+          className={`minimap-toggle${showMinimap ? ' is-active' : ''}`}
+        >
+          <Icon name="map" size={14} />
+        </ControlButton>
+      </Controls>
+      {showMinimap && (
+        <MiniMap
+          pannable
+          zoomable
+          className="graph-minimap"
+          nodeColor={(n) => categoryColor(getNodeDef((n.data as { type: string }).type)?.category ?? '')}
+          maskColor="rgba(0,0,0,0.5)"
+        />
+      )}
     </ReactFlow>
     {menu && (
       <GraphContextMenu

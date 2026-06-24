@@ -19,7 +19,8 @@ export type IconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'help'
-  | 'camera';
+  | 'camera'
+  | 'map';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -107,6 +108,12 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
+    </>
+  ),
+  map: (
+    <>
+      <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+      <path d="M8 2v16M16 6v16" />
     </>
   ),
 };

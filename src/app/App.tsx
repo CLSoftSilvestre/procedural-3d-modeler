@@ -5,7 +5,8 @@ import { useEvaluatedGeometry } from '@/engine/useEvaluatedGeometry';
 import { nodeDefsByCategory, getNodeDef } from '@/nodes/registry';
 import { downloadGraph, deserializeGraph } from '@/graph/serialize';
 import { EXAMPLES, getExample } from '@/examples';
-import { Viewport, type ViewportHandle } from '@/viewport/Viewport';
+import { Viewport, type ViewportHandle, type GizmoMode, type GizmoTransform } from '@/viewport/Viewport';
+import { hasTransformSockets, TRANSFORM_DEFAULTS } from '@/nodes/transformShared';
 import { GraphEditor } from '@/ui/GraphEditor';
 import { Inspector } from '@/ui/Inspector';
 import { ParamsPanel } from '@/ui/ParamsPanel';
@@ -201,6 +202,39 @@ export function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !hasOnboarded());
   const [tourOpen, setTourOpen] = useState(false);
+  const [gizmoMode, setGizmoMode] = useState<GizmoMode>('translate');
+  const dragKeyRef = useRef<string | null>(null);
+
+  const selectedNode = useStore((s) => s.graph.nodes.find((n) => n.id === s.selectedNodeId));
+  const showGizmo = useMemo(
+    () => (selectedNode ? hasTransformSockets(getNodeDef(selectedNode.type)?.inputs ?? []) : false),
+    [selectedNode],
+  );
+  const gizmo = useMemo<GizmoTransform | null>(() => {
+    if (!selectedNode || !showGizmo) return null;
+    const v = selectedNode.values;
+    const n = (id: string) => (typeof v[id] === 'number' ? (v[id] as number) : TRANSFORM_DEFAULTS[id]!);
+    return {
+      t: [n('tx'), n('ty'), n('tz')],
+      r: [n('rx'), n('ry'), n('rz')],
+      s: [n('sx'), n('sy'), n('sz')],
+    };
+  }, [selectedNode, showGizmo]);
+
+  const round = (x: number) => Math.round(x * 1000) / 1000;
+  function onGizmoChange(next: GizmoTransform) {
+    const id = useStore.getState().selectedNodeId;
+    if (!id) return;
+    useStore.getState().setNodeValues(
+      id,
+      {
+        tx: round(next.t[0]), ty: round(next.t[1]), tz: round(next.t[2]),
+        rx: round(next.r[0]), ry: round(next.r[1]), rz: round(next.r[2]),
+        sx: round(next.s[0]), sy: round(next.s[1]), sz: round(next.s[2]),
+      },
+      dragKeyRef.current ?? undefined,
+    );
+  }
   const [wireframe, setWireframe] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -280,6 +314,22 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [undo, redo]);
+
+  // Gizmo mode shortcuts (W/E/R), like common 3D tools — only while the gizmo is shown.
+  useEffect(() => {
+    if (!showGizmo) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement;
+      const tag = el?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'w') setGizmoMode('translate');
+      else if (e.key === 'e') setGizmoMode('rotate');
+      else if (e.key === 'r') setGizmoMode('scale');
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showGizmo]);
 
   return (
     <div className="app">
@@ -392,6 +442,31 @@ export function App() {
                 Grid
               </button>
               <LightsControl lighting={lighting} onChange={setLighting} />
+              {showGizmo && (
+                <span className="viewport__gizmomode">
+                  <button
+                    className={gizmoMode === 'translate' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('translate')}
+                    title="Move (W)"
+                  >
+                    Move
+                  </button>
+                  <button
+                    className={gizmoMode === 'rotate' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('rotate')}
+                    title="Rotate (E)"
+                  >
+                    Rotate
+                  </button>
+                  <button
+                    className={gizmoMode === 'scale' ? 'is-active' : ''}
+                    onClick={() => setGizmoMode('scale')}
+                    title="Scale (R)"
+                  >
+                    Scale
+                  </button>
+                </span>
+              )}
               <button
                 onClick={saveScreenshot}
                 disabled={!geometry}
@@ -422,6 +497,15 @@ export function App() {
               wireframe={wireframe}
               showGrid={showGrid}
               lighting={lighting}
+              gizmo={gizmo}
+              gizmoMode={gizmoMode}
+              onGizmoStart={() => {
+                dragKeyRef.current = `gizmo:${useStore.getState().selectedNodeId}:${Date.now()}`;
+              }}
+              onGizmoChange={onGizmoChange}
+              onGizmoEnd={() => {
+                dragKeyRef.current = null;
+              }}
             />
             {!geometry && graph.nodes.length > 0 && errors.length === 0 && (
               <div className="viewport__hint">Connect geometry into an Output node to see it here.</div>

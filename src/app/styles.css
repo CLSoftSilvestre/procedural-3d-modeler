@@ -1789,3 +1789,23 @@ body,
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
+
+/* gizmo mode switch (viewport toolbar) */
+.viewport__gizmomode {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.viewport__gizmomode button {
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+.viewport__gizmomode button.is-active {
+  background: var(--accent);
+  color: #0c1426;
+}

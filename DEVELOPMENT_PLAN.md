@@ -253,6 +253,21 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Editor & viewport UX (batch 4): transform gizmo
+- Selecting a node that has transform sockets (any primitive or the Transform modifier) shows a
+  three `TransformControls` gizmo in the viewport. It drives an **invisible proxy** Object3D;
+  on `objectChange` the proxy's decomposed TRS (Euler 'XYZ' → degrees) is written back to the
+  node's `tx/ty/tz · rx/ry/rz · sx/sy/sz` via `setNodeValues(..., coalesceKey)` so a whole drag
+  is **one undo step**. `dragging-changed` disables OrbitControls while dragging.
+- Math note: our `composeMatrix` is `T*R*S` with Euler 'XYZ'; the proxy uses the same order, and
+  world-space gizmo rotation premultiplies the quaternion exactly as our matrix does — so reading
+  the proxy back round-trips correctly (verified for centered primitives and the Transform node).
+- Modes Move/Rotate/Scale via toolbar buttons + **W/E/R** keys (only while the gizmo is shown).
+  Gizmo syncs from store values (so inspector edits move it too) but **skips sync while dragging**
+  to avoid fighting the re-evaluated values. Screenshot hides the gizmo helper.
+- Editor/viewport UX bundle (minimap, right-click add, screenshot, minimap toggle, view gizmo,
+  notes/frames, transform gizmo) is now **complete**. 106 tests; all checks clean.
+
 ### 2026-06-24 — Editor & viewport UX (batch 3): node comments / frames
 - Added decorative **notes/frames**: a new optional `Graph.notes: GraphNote[]` (id/text/position/
   width/height/color) that the engine, codegen, topo and validate fully ignore. Store actions

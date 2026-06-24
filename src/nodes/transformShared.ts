@@ -32,6 +32,20 @@ const TRANSFORM_SOCKETS: TransformSocket[] = [
   { id: 'sz', label: 'Scale Z', default: 1, range: 5, step: 0.01 },
 ];
 
+/** Socket ids that make up a transform, in order: translate, rotate(°), scale. */
+export const TRANSFORM_SOCKET_IDS = TRANSFORM_SOCKETS.map((s) => s.id);
+
+/** Default value per transform socket id (0 for translate/rotate, 1 for scale). */
+export const TRANSFORM_DEFAULTS: Record<string, number> = Object.fromEntries(
+  TRANSFORM_SOCKETS.map((s) => [s.id, s.default]),
+);
+
+/** True if `inputs` includes all 9 transform sockets (primitives + the Transform modifier). */
+export function hasTransformSockets(inputs: SocketSpec[]): boolean {
+  const ids = new Set(inputs.map((s) => s.id));
+  return TRANSFORM_SOCKET_IDS.every((id) => ids.has(id));
+}
+
 /** Build the 9 transform input sockets, optionally placed in an inspector group. */
 export function transformInputs(group?: string): SocketSpec[] {
   return TRANSFORM_SOCKETS.map((s) => ({

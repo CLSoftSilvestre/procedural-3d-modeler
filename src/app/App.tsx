@@ -14,6 +14,9 @@ import { ParamsPanel } from '@/ui/ParamsPanel';
 // only shown on demand. Keeping them out of the initial bundle speeds first load.
 const ExportPanel = lazy(() => import('@/ui/ExportPanel').then((m) => ({ default: m.ExportPanel })));
 const AboutModal = lazy(() => import('@/ui/AboutModal').then((m) => ({ default: m.AboutModal })));
+const ProjectsModal = lazy(() =>
+  import('@/ui/ProjectsModal').then((m) => ({ default: m.ProjectsModal })),
+);
 import { Icon } from '@/ui/Icon';
 import { categoryColor } from '@/ui/categoryColors';
 import { Splitter } from '@/ui/Splitter';
@@ -103,7 +106,7 @@ function NodePalette() {
   );
 }
 
-function Toolbar({ onExport }: { onExport: () => void }) {
+function Toolbar({ onExport, onProjects }: { onExport: () => void; onProjects: () => void }) {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const canUndo = useStore((s) => s.past.length > 0);
@@ -158,6 +161,9 @@ function Toolbar({ onExport }: { onExport: () => void }) {
       <button onClick={() => fileRef.current?.click()} title="Load graph JSON">
         <Icon name="load" /> Load
       </button>
+      <button onClick={onProjects} title="Projects — save/open local models">
+        <Icon name="folder" /> Projects
+      </button>
       <input
         ref={fileRef}
         type="file"
@@ -205,6 +211,7 @@ export function App() {
   const centerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<ViewportHandle>(null);
   const [showExport, setShowExport] = useState(false);
+  const [showProjects, setShowProjects] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !hasOnboarded());
   const [tourOpen, setTourOpen] = useState(false);
@@ -284,6 +291,28 @@ export function App() {
     a.click();
   }
 
+  /** Downscale the current viewport render to a small JPEG for a project thumbnail. */
+  function captureThumbnail(): Promise<string | null> {
+    const full = viewportRef.current?.capturePNG();
+    if (!full) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const w = 240;
+        const h = Math.max(1, Math.round((img.height / img.width) * w));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(null);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = () => resolve(null);
+      img.src = full;
+    });
+  }
+
   function quickStartBox() {
     const s = useStore.getState();
     const boxId = s.addNode('primitive.box', { x: 120, y: 90 });
@@ -358,7 +387,7 @@ export function App() {
             <span className="app__sub">three.js generator</span>
           </div>
         </button>
-        <Toolbar onExport={() => setShowExport(true)} />
+        <Toolbar onExport={() => setShowExport(true)} onProjects={() => setShowProjects(true)} />
         <span className="app__stats">
           {evaluating && <span className="app__busy">evaluating…</span>}
           {geometry ? `${geometry.metadata.triCount.toLocaleString()} tris` : 'no output'}
@@ -576,6 +605,17 @@ export function App() {
       <Suspense fallback={null}>
         {showExport && (
           <ExportPanel geometry={geometry} material={material} onClose={() => setShowExport(false)} />
+        )}
+        {showProjects && (
+          <ProjectsModal
+            captureThumbnail={captureThumbnail}
+            onOpen={(g, name) => {
+              loadGraph(g);
+              setShowProjects(false);
+              useStore.getState().setNotice({ kind: 'info', message: `Opened “${name}”` });
+            }}
+            onClose={() => setShowProjects(false)}
+          />
         )}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showWelcome && (

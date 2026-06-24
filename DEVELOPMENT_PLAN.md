@@ -253,6 +253,23 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Performance: code-splitting
+- Lazy-load on-demand UI via `React.lazy` + `Suspense`: **ExportPanel** (pulls in the
+  glTF/STL/OBJ exporters, ~49 kB), **AboutModal**, onboarding **WelcomeModal/Tour**.
+- `build.rollupOptions.output.manualChunks` splits **three** (~536 kB) and **@xyflow/react**
+  (~326 kB) into their own vendor chunks (parallel download + cached across deploys).
+- Net: the single ~1,142 kB app bundle became app `index` **~227 kB** + cached vendor chunks;
+  exporters/modals load only when opened. (CSG already lived in the eval-worker chunk.)
+
+### 2026-06-24 — Projects: local multi-project manager
+- New `src/state/projects.ts` (localStorage `p3m.projects.v1`): `getProjects` (newest-first),
+  `saveProject` (upsert; returns false on quota), `deleteProject`, `renameProject`. Each
+  **Project** = {id, name, graph, thumbnail (small JPEG dataURL), updatedAt}. +2 tests (111 total).
+- `ProjectsModal` (lazy): name field + **Save current**, and a card grid (thumbnail/name/date)
+  with Open, Overwrite-with-current, Duplicate, Rename, Delete. Opened from a new toolbar
+  **Projects** button. Thumbnails come from the viewport via `captureThumbnail()` (downscaled to
+  240px JPEG). Distinct from the rolling autosave and Save/Load-to-file. Added `folder`/`edit` icons.
+
 ### 2026-06-24 — Tooltip thumbnails for the new nodes
 - Added dedicated `NodeThumbnail` line-art for the new nodes (were hitting the generic fallback):
   capsule (pill), circle (disc), ring (annulus, evenodd hole), torus knot (interlocked loops),

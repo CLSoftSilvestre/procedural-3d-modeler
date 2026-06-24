@@ -23,7 +23,9 @@ export type IconName =
   | 'map'
   | 'wireframe'
   | 'grid'
-  | 'sun';
+  | 'sun'
+  | 'folder'
+  | 'edit';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -138,6 +140,15 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  folder: (
+    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  ),
+  edit: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
     </>
   ),
 };

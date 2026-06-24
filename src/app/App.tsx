@@ -206,6 +206,7 @@ export function App() {
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const notice = useStore((s) => s.notice);
+  const setNotice = useStore((s) => s.setNotice);
   const loadGraph = useStore((s) => s.loadGraph);
   const { layout, update } = useLayout();
   const centerRef = useRef<HTMLDivElement>(null);
@@ -320,6 +321,13 @@ export function App() {
     s.addEdge({ source: boxId, sourceSocket: 'geometry', target: outId, targetSocket: 'geometry' });
   }
 
+  // Auto-dismiss transient info notices; errors stay until dismissed manually.
+  useEffect(() => {
+    if (notice?.kind !== 'info') return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice, setNotice]);
+
   // Keyboard shortcuts: undo/redo + duplicate/copy/paste.
   useEffect(() => {
     function isTyping(): boolean {
@@ -397,7 +405,14 @@ export function App() {
         </button>
       </header>
 
-      {notice && <div className={`app__notice app__notice--${notice.kind}`}>{notice.message}</div>}
+      {notice && (
+        <div className={`app__notice app__notice--${notice.kind}`}>
+          <span className="app__notice-msg">{notice.message}</span>
+          <button className="app__notice-x" onClick={() => setNotice(null)} aria-label="Dismiss" title="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="app__body" ref={centerRef}>
         {layout.leftOpen ? (

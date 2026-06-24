@@ -148,8 +148,27 @@ body,
 
 /* notice bar */
 .app__notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 6px 14px;
   font-size: 12px;
+}
+.app__notice-msg {
+  flex: 1;
+}
+.app__notice-x {
+  background: transparent;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.app__notice-x:hover {
+  opacity: 1;
 }
 .app__notice--error {
   background: rgba(120, 20, 20, 0.85);

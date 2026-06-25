@@ -25,7 +25,8 @@ export const applyMaterialNode: NodeDef = {
     const g = geom(inputs);
     if (!g) return emptyGeometry();
     const m = mat(inputs);
-    return m ? withMaterial(g, m) : g;
+    // Explicit paint: override any material the geometry already carries (e.g. a component's own).
+    return m ? withMaterial(g, m, true) : g;
   },
 
   codegen(ctx) {

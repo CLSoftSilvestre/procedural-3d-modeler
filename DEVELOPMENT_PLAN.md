@@ -253,6 +253,15 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Fix: per-part material overrides + Output fallback
+- **Bug:** in a multi-material merge, (1) untagged parts fell back to the *default* material,
+  ignoring the Output's material socket, and (2) an Apply Material couldn't override a material the
+  geometry already carried (e.g. a component's own), so a painted component kept its source material.
+- **Fix:** `withMaterial(data, mat, override?)` — Apply Material now force-overrides; implicit
+  component tagging still preserves nested per-part materials. The **Output** tags untagged parts
+  with its material socket as the fallback when the merge is multi-material. (Codegen already did
+  this; the runtime now matches.) +2 tests (129 total). All checks clean.
+
 ### 2026-06-24 — Multi-material source codegen
 - Per-part materials now **export to three.js source** too. The generator tracks a material
   expression per geometry var (via Apply Material and components, which now return

@@ -93,11 +93,13 @@ function renderCount(data: GeometryData): number {
 }
 
 /**
- * Tag a geometry with a single material covering all of it (one group). If it already carries
- * material groups (e.g. a nested assembly), it's returned unchanged so per-part materials persist.
+ * Tag a geometry with a single material covering all of it (one group).
+ * `override = false` (implicit tagging, e.g. a component's own material): keep any existing
+ * material groups so a nested assembly's per-part materials persist.
+ * `override = true` (explicit Apply Material): replace whatever material(s) it already had.
  */
-export function withMaterial(data: GeometryData, material: MaterialSpec): GeometryData {
-  if (data.materials && data.materials.length) return data;
+export function withMaterial(data: GeometryData, material: MaterialSpec, override = false): GeometryData {
+  if (!override && data.materials && data.materials.length) return data;
   if (data.metadata.triCount === 0) return data;
   return {
     ...data,

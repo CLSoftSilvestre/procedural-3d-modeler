@@ -1,6 +1,7 @@
 import { mergeGeometriesData } from '@/geometry/ops';
-import type { GeometryData } from '@/geometry/GeometryData';
+import { withMaterial, type GeometryData } from '@/geometry/GeometryData';
 import type { NodeDef, ResolvedInputs } from '../NodeDef';
+import { mat } from '../helpers';
 
 /**
  * Output — the terminal node. Whatever geometry reaches it is what the viewport shows
@@ -23,7 +24,15 @@ export const outputNode: NodeDef = {
     // Multi-input: geometry resolves to an array; merge all connected parts into one mesh.
     const parts = (inputs.geometry as GeometryData[] | undefined) ?? [];
     if (parts.length === 0) return undefined as unknown as GeometryData; // nothing connected
-    return mergeGeometriesData(parts);
+    // If it's a multi-material assembly, untagged parts take the Output's material socket as
+    // their fallback (so a plain object next to painted parts still gets the chosen material).
+    const fallback = mat(inputs);
+    const anyTagged = parts.some((p) => p.materials && p.materials.length);
+    const prepared =
+      anyTagged && fallback
+        ? parts.map((p) => (p.materials && p.materials.length ? p : withMaterial(p, fallback)))
+        : parts;
+    return mergeGeometriesData(prepared);
   },
 
   codegen(ctx) {

@@ -78,6 +78,52 @@ describe('per-part materials', () => {
     expect(geometry!.groups).toHaveLength(2);
   });
 
+  it('untagged part uses the Output material as fallback (not default) in a multi-material merge', () => {
+    const graph = makeGraph(
+      [
+        { id: 'b1', type: 'primitive.box', values: { tx: -1 } }, // plain object → Output material
+        { id: 'b2', type: 'primitive.box', values: { tx: 1 } },
+        { id: 'mApply', type: 'material.standard', values: { color: '#cccccc' } }, // "chrome"
+        { id: 'a2', type: 'material.apply' },
+        { id: 'mOut', type: 'material.standard', values: { color: '#111111' } }, // "glass"
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [
+        e('e3', 'b2', 'geometry', 'a2', 'geometry'),
+        e('e4', 'mApply', 'material', 'a2', 'material'),
+        e('e5', 'b1', 'geometry', 'out', 'geometry'),
+        e('e6', 'a2', 'geometry', 'out', 'geometry'),
+        e('e7', 'mOut', 'material', 'out', 'material'),
+      ],
+    );
+    const { geometry } = evaluateGraph(graph);
+    const colors = geometry!.materials!.map((m) => (m as { color?: string }).color);
+    expect(colors).toEqual(['#111111', '#cccccc']); // b1 → Output material; b2 → applied
+  });
+
+  it('Apply Material overrides a material the geometry already carries', () => {
+    const graph = makeGraph(
+      [
+        { id: 'b1', type: 'primitive.box' },
+        { id: 'm1', type: 'material.standard', values: { color: '#aaaa00' } }, // first
+        { id: 'a1', type: 'material.apply' },
+        { id: 'm2', type: 'material.standard', values: { color: '#cccccc' } }, // override
+        { id: 'a2', type: 'material.apply' },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [
+        e('e1', 'b1', 'geometry', 'a1', 'geometry'),
+        e('e2', 'm1', 'material', 'a1', 'material'),
+        e('e3', 'a1', 'geometry', 'a2', 'geometry'),
+        e('e4', 'm2', 'material', 'a2', 'material'),
+        e('e5', 'a2', 'geometry', 'out', 'geometry'),
+      ],
+    );
+    const { geometry } = evaluateGraph(graph);
+    expect(geometry!.materials).toHaveLength(1);
+    expect((geometry!.materials![0] as { color?: string }).color).toBe('#cccccc'); // overridden
+  });
+
   it('untagged geometry stays single-material (no groups)', () => {
     const graph = makeGraph(
       [

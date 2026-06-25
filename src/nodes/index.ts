@@ -13,6 +13,7 @@ import { starNode } from './curves/star';
 import { extrudeNode } from './generators/extrude';
 import { latheNode } from './generators/lathe';
 import { materialNode } from './material/material';
+import { applyMaterialNode } from './material/applyMaterial';
 import { randomNode } from './value/random';
 import { expressionNode } from './value/expression';
 import { timeNode } from './value/time';
@@ -39,6 +40,7 @@ export function registerBuiltinNodes(): void {
   registerNode(extrudeNode);
   registerNode(latheNode);
   registerNode(materialNode);
+  registerNode(applyMaterialNode);
   registerNode(randomNode);
   registerNode(expressionNode);
   registerNode(timeNode);

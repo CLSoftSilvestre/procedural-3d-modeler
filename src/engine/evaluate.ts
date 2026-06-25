@@ -1,4 +1,4 @@
-import type { GeometryData } from '@/geometry/GeometryData';
+import { withMaterial, type GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
 import { mulberry32 } from '@/geometry/rng';
 import type { Edge, Graph, GraphNode, LiteralValue, SocketValue } from '@/graph/types';
@@ -182,6 +182,8 @@ function evalComponent(
   }
   let geom = res.geometry ?? undefined;
   if (geom && hasTransform(inputs)) geom = applyTransform(geom, inputs);
+  // Carry the sub-model's material so each part keeps its appearance in the assembly.
+  if (geom && res.material) geom = withMaterial(geom, res.material);
   return geom;
 }
 

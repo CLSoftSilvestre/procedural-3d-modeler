@@ -1,6 +1,16 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { emptyGeometry, fromBufferGeometry, toBufferGeometry, type GeometryData } from './GeometryData';
+import { defaultMaterialSpec } from '@/material/MaterialData';
+
+/** Preserve material grouping across an op that keeps vertex order/count (transform/deform/mirror). */
+function carryMaterials(out: GeometryData, src: GeometryData): GeometryData {
+  if (src.materials && src.groups) {
+    out.groups = src.groups;
+    out.materials = src.materials;
+  }
+  return out;
+}
 
 /**
  * Apply a 4x4 transform to geometry (positions + normals), returning new GeometryData.
@@ -11,7 +21,7 @@ export function transformGeometry(data: GeometryData, matrix: THREE.Matrix4): Ge
   geom.applyMatrix4(matrix);
   const out = fromBufferGeometry(geom);
   geom.dispose();
-  return out;
+  return carryMaterials(out, data);
 }
 
 export type Axis = 'x' | 'y' | 'z';
@@ -47,7 +57,7 @@ export function deformGeometry(
   geom.computeVertexNormals();
   const out = fromBufferGeometry(geom);
   geom.dispose();
-  return out;
+  return carryMaterials(out, data);
 }
 
 /** Read/write a vector's coordinate by axis. */
@@ -55,18 +65,79 @@ export function axisIndex(axis: Axis): 0 | 1 | 2 {
   return axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
 }
 
-/** Merge several geometries into one. Empty inputs are skipped. */
+/** Merge several geometries into one. Empty inputs are skipped. When any input carries a
+ *  material, the result is a multi-material geometry (material groups) so assembled parts keep
+ *  their own appearance; otherwise it's a plain single merge. */
 export function mergeGeometriesData(list: GeometryData[]): GeometryData {
   const nonEmpty = list.filter((d) => d.metadata.triCount > 0);
   if (nonEmpty.length === 0) return emptyGeometry();
   if (nonEmpty.length === 1) return nonEmpty[0]!;
-  const geoms = nonEmpty.map(toBufferGeometry);
-  const merged = mergeGeometries(geoms, false);
-  geoms.forEach((g) => g.dispose());
-  if (!merged) return emptyGeometry();
-  const out = fromBufferGeometry(merged);
-  merged.dispose();
-  return out;
+  if (nonEmpty.some((d) => d.materials && d.materials.length)) return mergeWithMaterials(nonEmpty);
+  try {
+    const geoms = nonEmpty.map(toBufferGeometry);
+    const merged = mergeGeometries(geoms, false);
+    geoms.forEach((g) => g.dispose());
+    if (!merged) return emptyGeometry();
+    const out = fromBufferGeometry(merged);
+    merged.dispose();
+    return out;
+  } catch {
+    return emptyGeometry();
+  }
+}
+
+/** Merge geometries that carry materials into one multi-material geometry (de-indexed so group
+ *  ranges are uniform; materials are de-duplicated by value). */
+function mergeWithMaterials(list: GeometryData[]): GeometryData {
+  const geoms: THREE.BufferGeometry[] = [];
+  const groups: { start: number; count: number; materialIndex: number }[] = [];
+  const materials: GeometryData['materials'] = [];
+  const matKey = new Map<string, number>();
+  const dedup = (m: NonNullable<GeometryData['materials']>[number]): number => {
+    const k = JSON.stringify(m);
+    let i = matKey.get(k);
+    if (i === undefined) {
+      i = materials.length;
+      materials.push(m);
+      matKey.set(k, i);
+    }
+    return i;
+  };
+
+  let offset = 0;
+  for (const data of list) {
+    let bg = toBufferGeometry(data);
+    if (bg.index) {
+      const n = bg.toNonIndexed();
+      bg.dispose();
+      bg = n;
+    }
+    const vc = (bg.getAttribute('position') as THREE.BufferAttribute).count;
+    if (data.groups && data.materials && data.groups.length) {
+      for (const gp of data.groups) {
+        const mat = data.materials[gp.materialIndex] ?? defaultMaterialSpec();
+        groups.push({ start: offset + gp.start, count: gp.count, materialIndex: dedup(mat) });
+      }
+    } else {
+      groups.push({ start: offset, count: vc, materialIndex: dedup(defaultMaterialSpec()) });
+    }
+    offset += vc;
+    geoms.push(bg);
+  }
+
+  try {
+    const merged = mergeGeometries(geoms, false);
+    geoms.forEach((g) => g.dispose());
+    if (!merged) return emptyGeometry();
+    const out = fromBufferGeometry(merged);
+    merged.dispose();
+    out.groups = groups;
+    out.materials = materials;
+    return out;
+  } catch {
+    geoms.forEach((g) => g.dispose());
+    return emptyGeometry();
+  }
 }
 
 /** Mirror geometry across the plane normal to `axis`, fixing triangle winding. */
@@ -85,7 +156,7 @@ export function mirrorGeometry(data: GeometryData, axis: Axis): GeometryData {
       out.indices[i + 2] = t;
     }
   }
-  return out;
+  return carryMaterials(out, data);
 }
 
 /** Build a TRS matrix from translation, rotation (radians), and scale. */

@@ -281,15 +281,25 @@ export const Viewport = forwardRef<ViewportHandle, ViewportProps>(function Viewp
     if (meshRef.current) {
       scene.remove(meshRef.current);
       meshRef.current.geometry.dispose();
-      (meshRef.current.material as THREE.Material).dispose();
+      const m = meshRef.current.material;
+      if (Array.isArray(m)) m.forEach((mm) => mm.dispose());
+      else m.dispose();
       meshRef.current = null;
     }
 
     if (geometry) {
-      const mat = toThreeMaterial(material ?? defaultMaterialSpec()) as THREE.MeshStandardMaterial;
-      mat.side = THREE.DoubleSide; // procedural meshes can have open faces
-      if (wireframe) mat.wireframe = true;
-      const mesh = new THREE.Mesh(toBufferGeometry(geometry), mat);
+      const prep = (spec: MaterialSpec) => {
+        const m = toThreeMaterial(spec) as THREE.MeshStandardMaterial;
+        m.side = THREE.DoubleSide; // procedural meshes can have open faces
+        if (wireframe) m.wireframe = true;
+        return m;
+      };
+      // Multi-material (assemblies / painted parts) → material array indexed by geometry groups.
+      const meshMat =
+        geometry.materials && geometry.materials.length
+          ? geometry.materials.map(prep)
+          : prep(material ?? defaultMaterialSpec());
+      const mesh = new THREE.Mesh(toBufferGeometry(geometry), meshMat);
       scene.add(mesh);
       meshRef.current = mesh;
     }

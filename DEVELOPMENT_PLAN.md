@@ -253,6 +253,20 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Per-part materials (multi-material assemblies)
+- Geometry can now carry **material groups**: `GeometryData.materials[]` + existing `groups`, and a
+  `withMaterial(data, mat)` tagger. **Components** tag their output with the sub-model's material,
+  so assembled parts keep their own appearance.
+- `mergeGeometriesData` is now material-aware: if any input carries a material it de-indexes inputs,
+  builds per-part groups and a **de-duplicated** materials array (else the plain single-merge path,
+  unchanged → no regression). transform/deform/mirror **carry** material groups through.
+- New **Apply Material** node (`material.apply`, Material category): paint any geometry so it keeps
+  that material when merged — wire several painted parts into the Output for a multi-material model.
+- **Viewport** and **glTF export** render material arrays indexed by groups (multi-material mesh).
+  +3 tests (126 total). All checks clean.
+- **Known limit:** three.js *source* export is still single-material (Apply Material passes geometry
+  through; the Output applies one material). Multi-material codegen is the remaining follow-up.
+
 ### 2026-06-24 — Components / assemblies (Phase B: export)
 - Assemblies now **export to three.js code**. Refactored `generate.ts` into a reusable
   `buildBody(graph)` (geometry statements + merge + material) used for the host and recursively

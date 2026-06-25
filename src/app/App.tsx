@@ -23,8 +23,9 @@ import { Splitter } from '@/ui/Splitter';
 import { useLayout, clamp } from '@/ui/useLayout';
 import { LightsControl } from '@/ui/LightsControl';
 import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
-import { NodeTooltip } from '@/ui/NodeTooltip';
-import { DND_NODE_MIME } from '@/ui/dnd';
+import { NodeTooltip, ComponentTooltip } from '@/ui/NodeTooltip';
+import { DND_NODE_MIME, DND_COMPONENT_MIME } from '@/ui/dnd';
+import { getProjects, type Project } from '@/state/projects';
 import type { NodeDef } from '@/nodes/NodeDef';
 import { hasOnboarded, markOnboarded } from '@/ui/tour';
 
@@ -35,12 +36,21 @@ const Tour = lazy(() => import('@/ui/Onboarding').then((m) => ({ default: m.Tour
 
 function NodePalette() {
   const addNode = useStore((s) => s.addNode);
+  const addComponentNode = useStore((s) => s.addComponentNode);
   const select = useStore((s) => s.select);
+  const graph = useStore((s) => s.graph); // re-read projects after saves change the graph
   const byCategory = useMemo(() => nodeDefsByCategory(), []);
   const [query, setQuery] = useState('');
   const [hover, setHover] = useState<{ def: NodeDef; anchor: DOMRect } | null>(null);
+  const [compHover, setCompHover] = useState<{ project: Project; anchor: DOMRect } | null>(null);
 
   const q = query.trim().toLowerCase();
+  // Saved projects shown as draggable assembly components (refreshed via the graph dep).
+  const components = useMemo(
+    () => getProjects().filter((p) => !q || p.name.toLowerCase().includes(q)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [q, graph],
+  );
   const filtered = useMemo(
     () =>
       [...byCategory.entries()]
@@ -100,8 +110,50 @@ function NodePalette() {
           ))}
         </div>
       ))}
-      {filtered.length === 0 && <div className="panel__empty">No nodes match.</div>}
+      {components.length > 0 && (
+        <div className="palette__group">
+          <span className="palette__category">
+            <span className="palette__cat-dot" style={{ background: categoryColor('Components') }} />
+            Components
+          </span>
+          {components.map((p) => (
+            <button
+              key={p.id}
+              className="palette__btn"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData(DND_COMPONENT_MIME, p.id);
+                e.dataTransfer.effectAllowed = 'copy';
+                setCompHover(null);
+              }}
+              onMouseEnter={(e) =>
+                setCompHover({ project: p, anchor: e.currentTarget.getBoundingClientRect() })
+              }
+              onMouseLeave={() => setCompHover(null)}
+              onClick={() => {
+                const id = addComponentNode(p, {
+                  x: 80 + Math.random() * 120,
+                  y: 80 + Math.random() * 120,
+                });
+                select(id);
+              }}
+            >
+              <span className="palette__plus" aria-hidden="true">
+                +
+              </span>
+              <span className="palette__label">{p.name}</span>
+              <span className="palette__grip" aria-hidden="true">
+                ⋮⋮
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+      {filtered.length === 0 && components.length === 0 && (
+        <div className="panel__empty">No nodes match.</div>
+      )}
       {hover && <NodeTooltip def={hover.def} anchor={hover.anchor} />}
+      {compHover && <ComponentTooltip project={compHover.project} anchor={compHover.anchor} />}
     </div>
   );
 }
@@ -631,6 +683,15 @@ export function App() {
               loadGraph(g);
               setShowProjects(false);
               useStore.getState().setNotice({ kind: 'info', message: `Opened “${name}”` });
+            }}
+            onInsert={(project) => {
+              const id = useStore.getState().addComponentNode(project, {
+                x: 120 + Math.random() * 120,
+                y: 100 + Math.random() * 120,
+              });
+              useStore.getState().select(id);
+              setShowProjects(false);
+              setNotice({ kind: 'info', message: `Inserted component “${project.name}”` });
             }}
             onClose={() => setShowProjects(false)}
           />

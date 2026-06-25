@@ -39,7 +39,7 @@ export function AboutModal({ onClose }: { onClose: () => void }) {
               <span className="about__credit-label">A product of</span>
               <a
                 className="about__credit-value about__link"
-                href="https://azordev.pt"
+                href="http://azordev.pt"
                 target="_blank"
                 rel="noopener noreferrer"
               >

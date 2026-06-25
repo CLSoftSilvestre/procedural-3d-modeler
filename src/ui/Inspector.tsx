@@ -1,9 +1,27 @@
 import { useStore } from '@/state/store';
 import { requireNodeDef } from '@/nodes/registry';
-import { isObjectType, type LiteralValue, type SocketSpec } from '@/graph/types';
+import { isObjectType, type ExposedParam, type LiteralValue, type SocketSpec } from '@/graph/types';
 import { ValueControl } from './ValueControl';
 import { MaterialPresetPicker } from './MaterialPresetPicker';
 import { Icon } from './Icon';
+
+/** Synthesize an inspector control from an exposed parameter's metadata. */
+function controlForParam(p: ExposedParam): SocketSpec['control'] {
+  switch (p.type) {
+    case 'number':
+      return p.min !== undefined && p.max !== undefined
+        ? { kind: 'slider', min: p.min, max: p.max, step: p.step }
+        : { kind: 'number', step: p.step };
+    case 'boolean':
+      return { kind: 'checkbox' };
+    case 'color':
+      return { kind: 'color' };
+    case 'vector3':
+      return { kind: 'vector' };
+    default:
+      return { kind: 'text' };
+  }
+}
 
 export function Inspector() {
   const selectedNodeId = useStore((s) => s.selectedNodeId);
@@ -49,6 +67,23 @@ export function Inspector() {
         </div>
       </div>
       {def.description && <p className="inspector__desc">{def.description}</p>}
+      {node.component && (
+        <div className="inspector__component">
+          <div className="inspector__compsrc">
+            <Icon name="folder" size={12} /> {node.component.name}
+          </div>
+          {node.component.params.length === 0 ? (
+            <div className="panel__empty">This model has no exposed parameters.</div>
+          ) : (
+            <>
+              <div className="inspector__seclabel">Parameters</div>
+              {node.component.params.map((p) => (
+                <ComponentParamField key={p.id} nodeId={selectedNodeId} param={p} />
+              ))}
+            </>
+          )}
+        </div>
+      )}
       {node.type === 'material.standard' && <MaterialPresetPicker nodeId={selectedNodeId} />}
       {editable.length === 0 && <div className="panel__empty">No editable properties.</div>}
       {ungrouped.map((socket) => (
@@ -109,6 +144,22 @@ function InspectorField({ nodeId, socket }: { nodeId: string; socket: SocketSpec
           onChange={(v: LiteralValue) => setNodeValue(nodeId, socket.id, v as never)}
         />
       )}
+    </div>
+  );
+}
+
+/** A per-instance control for one of a component's exposed parameters. */
+function ComponentParamField({ nodeId, param }: { nodeId: string; param: ExposedParam }) {
+  const value = useStore((s) => s.graph.nodes.find((n) => n.id === nodeId)?.values[param.name]);
+  const setNodeValue = useStore((s) => s.setNodeValue);
+  return (
+    <div className="inspector__field">
+      <span className="inspector__label">{param.label}</span>
+      <ValueControl
+        control={controlForParam(param)}
+        value={value ?? param.default}
+        onChange={(v: LiteralValue) => setNodeValue(nodeId, param.name, v as never)}
+      />
     </div>
   );
 }

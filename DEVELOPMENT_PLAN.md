@@ -253,6 +253,75 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Component palette tooltips (thumbnail preview)
+- The palette "Components" items now show a rich hover tooltip (new `ComponentTooltip`) with the
+  project's saved **thumbnail**, name, a Component chip, its exposed **parameters** as chips, and
+  the built-in-transform note — matching the node tooltips. Factored a `tipPosition` helper. CSS
+  `.nodetip__img`. All checks clean.
+
+### 2026-06-24 — Fix: per-part material overrides + Output fallback
+- **Bug:** in a multi-material merge, (1) untagged parts fell back to the *default* material,
+  ignoring the Output's material socket, and (2) an Apply Material couldn't override a material the
+  geometry already carried (e.g. a component's own), so a painted component kept its source material.
+- **Fix:** `withMaterial(data, mat, override?)` — Apply Material now force-overrides; implicit
+  component tagging still preserves nested per-part materials. The **Output** tags untagged parts
+  with its material socket as the fallback when the merge is multi-material. (Codegen already did
+  this; the runtime now matches.) +2 tests (129 total). All checks clean.
+
+### 2026-06-24 — Multi-material source codegen
+- Per-part materials now **export to three.js source** too. The generator tracks a material
+  expression per geometry var (via Apply Material and components, which now return
+  `{ geometry, material }`); at the output it emits `mergeGeometries([...], true)` +
+  `new THREE.Mesh(merged, [matA, matB, …])` (one material per part).
+- Aligned the runtime: `mergeWithMaterials` now uses three's `mergeGeometries(useGroups=true)`
+  (one group per input, materialIndex = order), so eval and codegen are byte-for-byte in step →
+  multi-material parity test passes. Component helpers stay single-material (nested per-part
+  collapses to one material on export — documented).
+- +1 parity test (127 total). All checks clean. Per-part materials are now end-to-end:
+  **viewport · glTF · source export**.
+
+### 2026-06-24 — Per-part materials (multi-material assemblies)
+- Geometry can now carry **material groups**: `GeometryData.materials[]` + existing `groups`, and a
+  `withMaterial(data, mat)` tagger. **Components** tag their output with the sub-model's material,
+  so assembled parts keep their own appearance.
+- `mergeGeometriesData` is now material-aware: if any input carries a material it de-indexes inputs,
+  builds per-part groups and a **de-duplicated** materials array (else the plain single-merge path,
+  unchanged → no regression). transform/deform/mirror **carry** material groups through.
+- New **Apply Material** node (`material.apply`, Material category): paint any geometry so it keeps
+  that material when merged — wire several painted parts into the Output for a multi-material model.
+- **Viewport** and **glTF export** render material arrays indexed by groups (multi-material mesh).
+  +3 tests (126 total). All checks clean.
+- **Known limit:** three.js *source* export is still single-material (Apply Material passes geometry
+  through; the Output applies one material). Multi-material codegen is the remaining follow-up.
+
+### 2026-06-24 — Components / assemblies (Phase B: export)
+- Assemblies now **export to three.js code**. Refactored `generate.ts` into a reusable
+  `buildBody(graph)` (geometry statements + merge + material) used for the host and recursively
+  for each sub-model. Each distinct component → one **nested helper function**
+  `part_<Name>(params = {…})` (deduped by source id + graph hash); each instance emits
+  `const componentN = part_X({ <param>: <value> }); …applyMatrix4(transform)`.
+- Helpers are declared at the top of the generated function body (hoisted, self-contained), so
+  the parity harness runs them as-is. Depth-guarded; animated sub-models bake at t=0 on export.
+- Works for both vanilla + R3F targets. Parity-tested (component with param override + transform
+  matches eval). +1 test (123 total). All checks clean.
+- Remaining (later): per-part materials, "update from source", component library panel.
+
+### 2026-06-24 — Components / assemblies (Phase A: core)
+- **Reuse a saved model inside another as a parametric component** (SolidWorks-style assemblies).
+  New `ComponentRef` on `GraphNode` (embedded snapshot of the source graph + its exposed params)
+  and a `component.instance` node (Components category) with built-in transform + geometry output.
+- **Engine** recursively evaluates the embedded sub-graph with the instance's parameter values
+  (overriding the sub-model's param defaults), then applies the instance transform for placement.
+  Depth-guarded (MAX 8) against self-reference; cache key includes a hash of the embedded graph.
+- **Inspector** shows the component's exposed parameters as editable controls (per instance) +
+  the Transform group — e.g. a cylinder's Stroke/Diameter. **Store** `addComponentNode(project,pos)`.
+- **Insert** from the Projects modal (＋ button) or the new **Components** group in the palette
+  (click or **drag** onto the canvas, like a primitive). Canvas node shows the component's name.
+- **Phase A scope:** geometry-only (host material applies); **export is Phase B** — components
+  currently emit a placeholder empty geometry with a TODO comment. +5 tests (122 total); all clean.
+- Next (Phase B): codegen (inline sub-model as a reusable function). Later: per-part materials,
+  "update from source", a component library.
+
 ### 2026-06-24 — Notice bar: auto-dismiss + dismiss button
 - The top notice bar no longer sticks. **Info** notices (e.g. "Opened <project>") auto-clear after
   4s; **errors** persist. Every notice now has an **×** dismiss button. App-wide fix. Checks clean.

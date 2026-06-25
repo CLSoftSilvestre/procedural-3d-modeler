@@ -216,6 +216,33 @@ describe('codegen parity (generated code === live evaluation)', () => {
     expectParity(graph);
   });
 
+  it('multi-material output (per-part materials via Apply Material)', () => {
+    const graph = makeGraph(
+      [
+        { id: 'b1', type: 'primitive.box', values: { tx: -1 } },
+        { id: 'm1', type: 'material.standard', values: { color: '#ff0000' } },
+        { id: 'a1', type: 'material.apply' },
+        { id: 'b2', type: 'primitive.box', values: { tx: 1 } },
+        { id: 'm2', type: 'material.standard', values: { color: '#0000ff' } },
+        { id: 'a2', type: 'material.apply' },
+        { id: 'out', type: 'output.mesh' },
+      ],
+      [
+        { id: 'e1', source: 'b1', sourceSocket: 'geometry', target: 'a1', targetSocket: 'geometry' },
+        { id: 'e2', source: 'm1', sourceSocket: 'material', target: 'a1', targetSocket: 'material' },
+        { id: 'e3', source: 'b2', sourceSocket: 'geometry', target: 'a2', targetSocket: 'geometry' },
+        { id: 'e4', source: 'm2', sourceSocket: 'material', target: 'a2', targetSocket: 'material' },
+        edge('e5', 'a1', 'out'),
+        edge('e6', 'a2', 'out'),
+      ],
+    );
+    const result = generateModule(graph);
+    // material array on the mesh + grouped merge
+    expect(result.code).toContain('mergeGeometries([');
+    expect(result.code).toMatch(/new THREE\.Mesh\([^,]+, \[/);
+    expectParity(graph); // positions match (both use mergeGeometries(..., true))
+  });
+
   it('boolean (CSG subtract)', () => {
     expectParity(
       makeGraph(

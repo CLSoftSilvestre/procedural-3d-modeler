@@ -12,10 +12,12 @@ export function exportGLTF(
   material: MaterialSpec | null,
   binary: boolean,
 ): Promise<Blob> {
-  const mesh = new THREE.Mesh(
-    toBufferGeometry(geometry),
-    toThreeMaterial(material ?? defaultMaterialSpec()),
-  );
+  // Multi-material assemblies → a material array indexed by the geometry's groups.
+  const meshMaterial =
+    geometry.materials && geometry.materials.length
+      ? geometry.materials.map((m) => toThreeMaterial(m))
+      : toThreeMaterial(material ?? defaultMaterialSpec());
+  const mesh = new THREE.Mesh(toBufferGeometry(geometry), meshMaterial);
   const exporter = new GLTFExporter();
   return new Promise((resolve, reject) => {
     exporter.parse(

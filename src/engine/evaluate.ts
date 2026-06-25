@@ -1,11 +1,15 @@
-import type { GeometryData } from '@/geometry/GeometryData';
+import { withMaterial, type GeometryData } from '@/geometry/GeometryData';
 import type { MaterialSpec } from '@/material/MaterialData';
 import { mulberry32 } from '@/geometry/rng';
 import type { Edge, Graph, GraphNode, LiteralValue, SocketValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import type { EvalQuality, ResolvedInputs } from '@/nodes/NodeDef';
+import { applyTransform, hasTransform } from '@/nodes/transformShared';
 import { topoSort } from '@/graph/topology';
 import { fnv1a } from './hash';
+
+/** Guard against a component (directly or indirectly) referencing itself. */
+const MAX_COMPONENT_DEPTH = 8;
 
 export interface EvalError {
   nodeId: string;
@@ -65,6 +69,7 @@ export function evaluateGraph(
   cache?: EvalCache,
   quality: EvalQuality = 'full',
   time = 0,
+  depth = 0,
 ): EvalResult {
   const errors: EvalError[] = [];
   if (!graph.outputNodeId) return { geometry: null, material: null, errors };
@@ -100,8 +105,17 @@ export function evaluateGraph(
     // Time only enters the hash for time-dependent nodes, so static subgraphs stay cached
     // while the animated path recomputes each frame.
     const timeSig = def.timeDependent ? `#t${time}` : '';
+    // Components hash their embedded sub-model so different parts don't collide (same node type).
+    let compSig = '';
+    if (node.component) {
+      try {
+        compSig = `#c${fnv1a(JSON.stringify(node.component.graph) + node.component.sourceId)}`;
+      } catch {
+        compSig = `#c${node.component.sourceId}`; // cyclic embed (unexpected) — fall back to id
+      }
+    }
     const hash = fnv1a(
-      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#q${quality}${timeSig}#${upstream}`,
+      `${node.type}#${stableValues(node.values)}#${paramSig(nodeId, paramOverrides)}#s${seed}#q${quality}${timeSig}${compSig}#${upstream}`,
     );
     nodeHashes.set(nodeId, hash);
 
@@ -115,9 +129,12 @@ export function evaluateGraph(
     }
 
     try {
-      const result = def.evaluate(inputs, { random, quality, time }) as SocketValue;
-      outputs.set(nodeId, { [outSocket]: result });
-      cache?.set(hash, result);
+      const result =
+        node.type === 'component.instance' && node.component
+          ? evalComponent(node, inputs, seed, quality, time, depth, errors)
+          : (def.evaluate(inputs, { random, quality, time }) as SocketValue);
+      outputs.set(nodeId, { [outSocket]: result as SocketValue });
+      if (result !== undefined) cache?.set(hash, result as SocketValue);
     } catch (err) {
       errors.push({ nodeId, message: err instanceof Error ? err.message : String(err) });
       return { geometry: null, material: null, errors };
@@ -133,6 +150,41 @@ export function evaluateGraph(
   const outInputs = resolveInputs(outNode, graph.edges, outputs, paramOverrides);
   const material = (outInputs.material as MaterialSpec | undefined) ?? null;
   return { geometry, material, errors };
+}
+
+/**
+ * Evaluate a component instance: clone its embedded sub-model, apply this instance's parameter
+ * values onto the sub-model's exposed params, recursively evaluate, then apply the instance's
+ * built-in transform for placement. Recursion is depth-guarded against self-reference.
+ */
+function evalComponent(
+  node: GraphNode,
+  inputs: ResolvedInputs,
+  seed: number,
+  quality: EvalQuality,
+  time: number,
+  depth: number,
+  errors: EvalError[],
+): GeometryData | undefined {
+  const ref = node.component!;
+  if (depth >= MAX_COMPONENT_DEPTH) {
+    errors.push({ nodeId: node.id, message: 'Component nesting too deep (possible self-reference)' });
+    return undefined;
+  }
+  const sub = structuredClone(ref.graph);
+  for (const p of sub.params ?? []) {
+    const v = node.values[p.name];
+    if (v !== undefined) p.default = v; // instance value overrides the source default
+  }
+  const res = evaluateGraph(sub, seed, undefined, quality, time, depth + 1);
+  if (res.errors.length) {
+    errors.push({ nodeId: node.id, message: `Component “${ref.name}”: ${res.errors[0]!.message}` });
+  }
+  let geom = res.geometry ?? undefined;
+  if (geom && hasTransform(inputs)) geom = applyTransform(geom, inputs);
+  // Carry the sub-model's material so each part keeps its appearance in the assembly.
+  if (geom && res.material) geom = withMaterial(geom, res.material);
+  return geom;
 }
 
 /** Stable stringification of a node's literal values (sorted keys). */

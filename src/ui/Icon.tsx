@@ -28,7 +28,8 @@ export type IconName =
   | 'edit'
   | 'move'
   | 'rotate'
-  | 'scale';
+  | 'scale'
+  | 'plus';
 
 const PATHS: Record<IconName, JSX.Element> = {
   new: (
@@ -173,6 +174,7 @@ const PATHS: Record<IconName, JSX.Element> = {
       <path d="M21 3l-7 7M3 21l7-7" />
     </>
   ),
+  plus: <path d="M12 5v14M5 12h14" />,
 };
 
 export function Icon({ name, size = 15 }: { name: IconName; size?: number }) {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { MaterialSpec } from '@/material/MaterialData';
 
 /**
  * GeometryData — the intermediate representation that flows through the entire system.
@@ -17,8 +18,10 @@ export interface GeometryData {
   uvs?: Float32Array;
   /** Named extra attributes (e.g. color). */
   attributes?: Record<string, { array: Float32Array; itemSize: number }>;
-  /** Material groups for multi-material meshes. */
+  /** Material groups for multi-material meshes (index into `materials`). */
   groups?: { start: number; count: number; materialIndex: number }[];
+  /** Per-group materials, indexed by group.materialIndex. Present on assemblies/painted parts. */
+  materials?: MaterialSpec[];
   metadata: GeometryMetadata;
 }
 
@@ -81,6 +84,27 @@ export function fromBufferGeometry(geom: THREE.BufferGeometry): GeometryData {
         ? { min: [bb.min.x, bb.min.y, bb.min.z], max: [bb.max.x, bb.max.y, bb.max.z] }
         : undefined,
     },
+  };
+}
+
+/** Render-element count used for a whole-geometry material group (index or vertex units). */
+function renderCount(data: GeometryData): number {
+  return data.indices ? data.indices.length : data.positions.length / 3;
+}
+
+/**
+ * Tag a geometry with a single material covering all of it (one group).
+ * `override = false` (implicit tagging, e.g. a component's own material): keep any existing
+ * material groups so a nested assembly's per-part materials persist.
+ * `override = true` (explicit Apply Material): replace whatever material(s) it already had.
+ */
+export function withMaterial(data: GeometryData, material: MaterialSpec, override = false): GeometryData {
+  if (!override && data.materials && data.materials.length) return data;
+  if (data.metadata.triCount === 0) return data;
+  return {
+    ...data,
+    groups: [{ start: 0, count: renderCount(data), materialIndex: 0 }],
+    materials: [material],
   };
 }
 

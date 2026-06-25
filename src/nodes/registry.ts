@@ -25,9 +25,11 @@ export function allNodeDefs(): NodeDef[] {
   return [...registry.values()];
 }
 
+/** Node defs grouped by category for the palette / add-node menu (excludes hidden defs). */
 export function nodeDefsByCategory(): Map<string, NodeDef[]> {
   const byCat = new Map<string, NodeDef[]>();
   for (const def of registry.values()) {
+    if (def.hidden) continue;
     const list = byCat.get(def.category) ?? [];
     list.push(def);
     byCat.set(def.category, list);

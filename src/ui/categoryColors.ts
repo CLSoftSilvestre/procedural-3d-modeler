@@ -8,6 +8,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   Booleans: '#ff5370',
   Material: '#f2c14e',
   Value: '#c8b6ff',
+  Components: '#e0af68',
   Output: '#9aa0ad',
 };
 

@@ -53,6 +53,8 @@ export interface NodeDef {
   label: string;
   /** One-line help shown as a tooltip in the palette and a subtitle in the inspector. */
   description?: string;
+  /** Hide from the palette / add-node menu (e.g. component instances are added from Projects). */
+  hidden?: boolean;
   /** Output varies with `ctx.time` — its cache key includes time so only the animated
    *  subgraph recomputes per frame. Set by the Time node. */
   timeDependent?: boolean;

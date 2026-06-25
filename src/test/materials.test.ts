@@ -48,12 +48,13 @@ describe('per-part materials', () => {
     expect(geometry!.materials).toHaveLength(2);
     expect(geometry!.groups).toHaveLength(2);
     expect(geometry!.metadata.triCount).toBe(24);
-    // group counts cover all triangles (de-indexed → 24 tris * 3 = 72 verts total)
-    const totalVerts = geometry!.groups!.reduce((n, g) => n + g.count, 0);
-    expect(totalVerts).toBe(geometry!.positions.length / 3);
+    // One group per part, materialIndex = part order; groups cover all triangles.
+    expect(geometry!.groups!.map((g) => g.materialIndex)).toEqual([0, 1]);
+    const totalCount = geometry!.groups!.reduce((n, g) => n + g.count, 0);
+    expect(totalCount).toBe(geometry!.metadata.triCount * 3);
   });
 
-  it('identical materials are de-duplicated into one slot', () => {
+  it('one material slot per part (in part order)', () => {
     const graph = makeGraph(
       [
         { id: 'b1', type: 'primitive.box', values: { tx: -1 } },
@@ -73,9 +74,8 @@ describe('per-part materials', () => {
       ],
     );
     const { geometry } = evaluateGraph(graph);
-    expect(geometry!.materials).toHaveLength(1); // same spec → one slot
-    expect(geometry!.groups).toHaveLength(2); // still two groups, both pointing at slot 0
-    expect(geometry!.groups!.every((g) => g.materialIndex === 0)).toBe(true);
+    expect(geometry!.materials).toHaveLength(2); // one per part (in lock-step with codegen)
+    expect(geometry!.groups).toHaveLength(2);
   });
 
   it('untagged geometry stays single-material (no groups)', () => {

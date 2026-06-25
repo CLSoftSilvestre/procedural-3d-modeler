@@ -7,8 +7,8 @@ import { geom, mat } from '../helpers';
  * with other parts (per-part materials / multi-material meshes). Wire several painted parts
  * into the Output to assemble a multi-material model.
  *
- * Note: live viewport + glTF export honor per-part materials; three.js *source* export is
- * still single-material (handled at the Output), so this is a geometry pass-through there.
+ * Honored by the live viewport, glTF export, and three.js source export (the generator tracks
+ * each part's material and emits a material array on the Mesh).
  */
 export const applyMaterialNode: NodeDef = {
   type: 'material.apply',

@@ -253,6 +253,18 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Multi-material source codegen
+- Per-part materials now **export to three.js source** too. The generator tracks a material
+  expression per geometry var (via Apply Material and components, which now return
+  `{ geometry, material }`); at the output it emits `mergeGeometries([...], true)` +
+  `new THREE.Mesh(merged, [matA, matB, …])` (one material per part).
+- Aligned the runtime: `mergeWithMaterials` now uses three's `mergeGeometries(useGroups=true)`
+  (one group per input, materialIndex = order), so eval and codegen are byte-for-byte in step →
+  multi-material parity test passes. Component helpers stay single-material (nested per-part
+  collapses to one material on export — documented).
+- +1 parity test (127 total). All checks clean. Per-part materials are now end-to-end:
+  **viewport · glTF · source export**.
+
 ### 2026-06-24 — Per-part materials (multi-material assemblies)
 - Geometry can now carry **material groups**: `GeometryData.materials[]` + existing `groups`, and a
   `withMaterial(data, mat)` tagger. **Components** tag their output with the sub-model's material,

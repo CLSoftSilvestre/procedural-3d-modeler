@@ -33,6 +33,7 @@ export interface CodegenOptions {
 }
 
 const DEFAULT_MATERIAL = 'new THREE.MeshStandardMaterial({ color: 0x6ea8fe, roughness: 0.5 })';
+const BGU = 'three/examples/jsm/utils/BufferGeometryUtils.js';
 const MAX_COMPONENT_DEPTH = 8;
 
 const indent = (src: string, pad = '  ') =>
@@ -61,8 +62,8 @@ function renderParamArgs(params: ExposedParam[], values: Record<string, unknown>
  * `target: 'vanilla'` → `createModel(params)` returning a THREE.Mesh.
  * `target: 'r3f'` → a React Three Fiber `<Model>` component.
  *
- * Assembly components are emitted as nested helper functions (one per distinct sub-model,
- * deduped) and called per instance with that instance's parameter values + transform.
+ * Assembly components are emitted as nested helper functions (one per distinct sub-model);
+ * per-part materials become a material array on the Mesh (one material per merged part).
  */
 export function generateModule(graph: Graph, opts: CodegenOptions = {}): CodegenResult {
   const target = opts.target ?? 'vanilla';
@@ -81,7 +82,8 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     return n === 1 ? base : `${base}${n}`;
   };
 
-  /** Register (once) a helper function for a sub-model and return its name. */
+  /** Register (once) a helper function for a sub-model and return its name. Helpers return
+   *  `{ geometry, material }` (single material — nested per-part collapses on export). */
   function ensureComponentHelper(ref: ComponentRef, depth: number): string {
     let key: string;
     try {
@@ -99,17 +101,17 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     if (depth >= MAX_COMPONENT_DEPTH) {
       componentHelpers.set(key, {
         name,
-        src: `function ${name}(params = {}) {\n  return new THREE.BufferGeometry(); // component nesting too deep\n}`,
+        src: `function ${name}(params = {}) {\n  return { geometry: new THREE.BufferGeometry(), material: ${DEFAULT_MATERIAL} }; // nesting too deep\n}`,
       });
       return name;
     }
 
-    const body = buildBody(ref.graph, depth + 1);
+    const body = buildBody(ref.graph, depth + 1, false);
     const subAnimated = ref.graph.nodes.some((n) => requireNodeDef(n.type).timeDependent);
     const inner = [
       ...(subAnimated ? ['const time = 0; // animated sub-models bake at t=0 on export'] : []),
       ...body.statements,
-      `return ${body.geomVar};`,
+      `return { geometry: ${body.geomVar}, material: ${body.matExpr} };`,
     ].join('\n');
     componentHelpers.set(key, {
       name,
@@ -118,12 +120,21 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
     return name;
   }
 
-  /** Build the geometry-producing statements for one graph (host or a sub-model). */
-  function buildBody(g: Graph, depth: number): { statements: string[]; geomVar: string; matExpr: string } {
+  /**
+   * Build the geometry-producing statements for one graph (host or a sub-model).
+   * `allowMulti` enables per-part material arrays at the output (true at top level; false inside
+   * component helpers, which return a single material).
+   */
+  function buildBody(
+    g: Graph,
+    depth: number,
+    allowMulti: boolean,
+  ): { statements: string[]; geomVar: string; matExpr: string } {
     const order = topoSort(g);
     if (!order) throw new Error('Cannot generate code: graph contains a cycle');
     const nodesById = new Map(g.nodes.map((n) => [n.id, n]));
     const outVar = new Map<string, Record<string, string>>();
+    const materialOf = new Map<string, string>(); // geometry var -> its material expression
     const statements: string[] = [];
     const counters = new Map<string, number>();
     const paramBySocket = new Map<string, ExposedParam>();
@@ -166,14 +177,26 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
         },
       };
 
-      // Component instance: call its sub-model helper with this instance's params + transform.
+      // Component instance: call its sub-model helper; track geometry + its material.
       if (node.type === 'component.instance' && node.component) {
         const fnName = ensureComponentHelper(node.component, depth);
-        const v = uniqueVar('component');
-        statements.push(`const ${v} = ${fnName}(${renderParamArgs(node.component.params, node.values)});`);
-        statements.push(...transformStatements(ctx, v));
+        const c = uniqueVar('component');
+        statements.push(`const ${c} = ${fnName}(${renderParamArgs(node.component.params, node.values)});`);
+        const gv = `${c}.geometry`;
+        statements.push(...transformStatements(ctx, gv));
         modules.add('three');
-        outVar.set(nodeId, { geometry: v });
+        outVar.set(nodeId, { geometry: gv });
+        materialOf.set(gv, `${c}.material`);
+        continue;
+      }
+
+      // Apply Material: pass geometry through but remember its material for the output.
+      if (node.type === 'material.apply') {
+        const gv = exprFor(nodeId, 'geometry');
+        outVar.set(nodeId, { geometry: gv });
+        if (g.edges.some((e) => e.target === nodeId && e.targetSocket === 'material')) {
+          materialOf.set(gv, exprFor(nodeId, 'material'));
+        }
         continue;
       }
 
@@ -185,7 +208,7 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
       if (outSocket) outVar.set(nodeId, { [outSocket.id]: frag.outputVar });
     }
 
-    // Resolve the Output node: merge all connected geometries; pick up the material.
+    // Resolve the Output node: merge geometries; apply per-part or single material.
     modules.add('three');
     let geomVar = 'new THREE.BufferGeometry()';
     let matExpr = DEFAULT_MATERIAL;
@@ -195,24 +218,38 @@ export function generateModule(graph: Graph, opts: CodegenOptions = {}): Codegen
         .filter((e) => e.target === outNodeId && e.targetSocket === 'geometry')
         .map((e) => outVar.get(e.source)?.[e.sourceSocket])
         .filter((v): v is string => Boolean(v));
-      if (geomVars.length === 1) {
-        geomVar = geomVars[0]!;
-      } else if (geomVars.length > 1) {
-        const merged = uniqueVar('merged');
-        statements.push(
-          `const ${merged} = BufferGeometryUtils.mergeGeometries([${geomVars.join(', ')}], false);`,
-        );
-        modules.add('three/examples/jsm/utils/BufferGeometryUtils.js');
-        geomVar = merged;
-      }
       const matEdge = g.edges.find((e) => e.target === outNodeId && e.targetSocket === 'material');
-      const m = matEdge && outVar.get(matEdge.source)?.[matEdge.sourceSocket];
-      if (m) matExpr = m;
+      const outMat = matEdge && outVar.get(matEdge.source)?.[matEdge.sourceSocket];
+
+      const multi = allowMulti && geomVars.some((v) => materialOf.has(v));
+      if (multi) {
+        const fallback = outMat || DEFAULT_MATERIAL;
+        if (geomVars.length === 1) {
+          geomVar = geomVars[0]!;
+          matExpr = materialOf.get(geomVars[0]!) ?? fallback;
+        } else if (geomVars.length > 1) {
+          const merged = uniqueVar('merged');
+          statements.push(`const ${merged} = BufferGeometryUtils.mergeGeometries([${geomVars.join(', ')}], true);`);
+          modules.add(BGU);
+          geomVar = merged;
+          matExpr = `[${geomVars.map((v) => materialOf.get(v) ?? fallback).join(', ')}]`;
+        }
+      } else {
+        if (geomVars.length === 1) {
+          geomVar = geomVars[0]!;
+        } else if (geomVars.length > 1) {
+          const merged = uniqueVar('merged');
+          statements.push(`const ${merged} = BufferGeometryUtils.mergeGeometries([${geomVars.join(', ')}], false);`);
+          modules.add(BGU);
+          geomVar = merged;
+        }
+        if (outMat) matExpr = outMat;
+      }
     }
     return { statements, geomVar, matExpr };
   }
 
-  const top = buildBody(graph, 0);
+  const top = buildBody(graph, 0, true);
   const componentSrcs = [...componentHelpers.values()].map((h) => h.src).filter(Boolean);
   // Nested helper declarations live at the top of the function body (hoisted, self-contained).
   const statements = [...componentSrcs, ...top.statements];

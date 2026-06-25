@@ -86,53 +86,23 @@ export function mergeGeometriesData(list: GeometryData[]): GeometryData {
   }
 }
 
-/** Merge geometries that carry materials into one multi-material geometry (de-indexed so group
- *  ranges are uniform; materials are de-duplicated by value). */
+/** Merge geometries that carry materials into one multi-material geometry. Uses three's
+ *  group merge (one group per input, materialIndex = input order) so it stays in lock-step with
+ *  the code generator. One material per part (a nested assembly collapses to its first material). */
 function mergeWithMaterials(list: GeometryData[]): GeometryData {
-  const geoms: THREE.BufferGeometry[] = [];
-  const groups: { start: number; count: number; materialIndex: number }[] = [];
-  const materials: GeometryData['materials'] = [];
-  const matKey = new Map<string, number>();
-  const dedup = (m: NonNullable<GeometryData['materials']>[number]): number => {
-    const k = JSON.stringify(m);
-    let i = matKey.get(k);
-    if (i === undefined) {
-      i = materials.length;
-      materials.push(m);
-      matKey.set(k, i);
-    }
-    return i;
-  };
-
-  let offset = 0;
-  for (const data of list) {
-    let bg = toBufferGeometry(data);
-    if (bg.index) {
-      const n = bg.toNonIndexed();
-      bg.dispose();
-      bg = n;
-    }
-    const vc = (bg.getAttribute('position') as THREE.BufferAttribute).count;
-    if (data.groups && data.materials && data.groups.length) {
-      for (const gp of data.groups) {
-        const mat = data.materials[gp.materialIndex] ?? defaultMaterialSpec();
-        groups.push({ start: offset + gp.start, count: gp.count, materialIndex: dedup(mat) });
-      }
-    } else {
-      groups.push({ start: offset, count: vc, materialIndex: dedup(defaultMaterialSpec()) });
-    }
-    offset += vc;
-    geoms.push(bg);
-  }
-
+  const geoms = list.map(toBufferGeometry);
   try {
-    const merged = mergeGeometries(geoms, false);
+    const merged = mergeGeometries(geoms, true);
     geoms.forEach((g) => g.dispose());
     if (!merged) return emptyGeometry();
     const out = fromBufferGeometry(merged);
+    out.groups = merged.groups.map((g) => ({
+      start: g.start,
+      count: g.count,
+      materialIndex: g.materialIndex ?? 0,
+    }));
+    out.materials = list.map((d) => (d.materials && d.materials[0]) || defaultMaterialSpec());
     merged.dispose();
-    out.groups = groups;
-    out.materials = materials;
     return out;
   } catch {
     geoms.forEach((g) => g.dispose());

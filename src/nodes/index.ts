@@ -16,6 +16,7 @@ import { materialNode } from './material/material';
 import { randomNode } from './value/random';
 import { expressionNode } from './value/expression';
 import { timeNode } from './value/time';
+import { componentNode } from './component/component';
 import { outputNode } from './output/output';
 
 let registered = false;
@@ -41,6 +42,7 @@ export function registerBuiltinNodes(): void {
   registerNode(randomNode);
   registerNode(expressionNode);
   registerNode(timeNode);
+  registerNode(componentNode);
   registerNode(outputNode);
 }
 

@@ -65,6 +65,21 @@ export interface SocketSpec {
   };
 }
 
+/**
+ * Embedded reference to another saved model, turning a node into an assembly component.
+ * The source graph is snapshotted (self-contained), and the instance's parameter values are
+ * stored in the node's `values` keyed by param name. See ARCHITECTURE.md (Components).
+ */
+export interface ComponentRef {
+  /** Source project id (for a future "update from source"). */
+  sourceId: string;
+  name: string;
+  /** Snapshot of the source project's graph. */
+  graph: Graph;
+  /** Snapshot of the source's exposed parameters (the knobs shown in the Inspector). */
+  params: ExposedParam[];
+}
+
 export interface GraphNode {
   id: string;
   type: string; // NodeDef.type, e.g. "primitive.box"
@@ -72,6 +87,8 @@ export interface GraphNode {
   /** Literal input values keyed by socket id (overridden by connected edges). */
   values: Record<string, LiteralValue>;
   title?: string;
+  /** Present on `component.instance` nodes: the embedded sub-model + its parameters. */
+  component?: ComponentRef;
 }
 
 export interface Edge {

@@ -253,6 +253,22 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Components / assemblies (Phase A: core)
+- **Reuse a saved model inside another as a parametric component** (SolidWorks-style assemblies).
+  New `ComponentRef` on `GraphNode` (embedded snapshot of the source graph + its exposed params)
+  and a `component.instance` node (Components category) with built-in transform + geometry output.
+- **Engine** recursively evaluates the embedded sub-graph with the instance's parameter values
+  (overriding the sub-model's param defaults), then applies the instance transform for placement.
+  Depth-guarded (MAX 8) against self-reference; cache key includes a hash of the embedded graph.
+- **Inspector** shows the component's exposed parameters as editable controls (per instance) +
+  the Transform group — e.g. a cylinder's Stroke/Diameter. **Store** `addComponentNode(project,pos)`.
+- **Insert** from the Projects modal (＋ button) or the new **Components** group in the palette
+  (click or **drag** onto the canvas, like a primitive). Canvas node shows the component's name.
+- **Phase A scope:** geometry-only (host material applies); **export is Phase B** — components
+  currently emit a placeholder empty geometry with a TODO comment. +5 tests (122 total); all clean.
+- Next (Phase B): codegen (inline sub-model as a reusable function). Later: per-part materials,
+  "update from source", a component library.
+
 ### 2026-06-24 — Notice bar: auto-dismiss + dismiss button
 - The top notice bar no longer sticks. **Info** notices (e.g. "Opened <project>") auto-clear after
   4s; **errors** persist. Every notice now has an **×** dismiss button. App-wide fix. Checks clean.

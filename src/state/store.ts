@@ -5,6 +5,7 @@ import { createEmptyGraph, GRAPH_VERSION } from '@/graph/types';
 import type { Edge, ExposedParam, Graph, GraphNode, GraphNote, LiteralValue } from '@/graph/types';
 import { requireNodeDef } from '@/nodes/registry';
 import { validateConnection } from '@/graph/validate';
+import type { Project } from './projects';
 
 const HISTORY_LIMIT = 100;
 
@@ -22,6 +23,7 @@ interface AppState {
   lastEditKey: string | null;
 
   addNode: (type: string, position: { x: number; y: number }) => string;
+  addComponentNode: (project: Project, position: { x: number; y: number }) => string;
   removeNode: (id: string) => void;
   moveNode: (id: string, position: { x: number; y: number }) => void;
   setNodeValue: (id: string, socketId: string, value: number | boolean | string | number[]) => void;
@@ -123,6 +125,39 @@ export const useStore = create<AppState>()(
           if (type === 'output.mesh' && !s.graph.outputNodeId) {
             s.graph.outputNodeId = node.id;
           }
+        });
+        return node.id;
+      },
+
+      addComponentNode: (project, position) => {
+        const def = requireNodeDef('component.instance');
+        const params = structuredClone(project.graph.params ?? []);
+        const values: GraphNode['values'] = {};
+        // Built-in transform defaults...
+        for (const socket of def.inputs) {
+          if (socket.type !== 'geometry' && socket.default !== undefined) {
+            values[socket.id] = socket.default;
+          }
+        }
+        // ...then each exposed parameter's default (instance-editable in the Inspector).
+        for (const p of params) values[p.name] = p.default;
+        const node: GraphNode = {
+          id: nextId('node'),
+          type: 'component.instance',
+          position,
+          values,
+          title: project.name,
+          component: {
+            sourceId: project.id,
+            name: project.name,
+            graph: structuredClone(project.graph),
+            params,
+          },
+        };
+        set((s) => {
+          pushHistory(s);
+          s.graph.nodes.push(node);
+          s.selectedNodeId = node.id;
         });
         return node.id;
       },

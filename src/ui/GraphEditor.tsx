@@ -19,7 +19,8 @@ import {
   type NodeProps,
   type NodeChange,
 } from '@xyflow/react';
-import { DND_NODE_MIME } from './dnd';
+import { DND_NODE_MIME, DND_COMPONENT_MIME } from './dnd';
+import { getProjects } from '@/state/projects';
 import '@xyflow/react/dist/style.css';
 import { useStore } from '@/state/store';
 import { getNodeDef, requireNodeDef } from '@/nodes/registry';
@@ -46,7 +47,7 @@ function GraphNodeView({ id, data }: NodeProps) {
     >
       <div className="graph-node__title">
         <span className="graph-node__dot" />
-        {def.label}
+        {(data.label as string) || def.label}
       </div>
       <div className="graph-node__body">
         {def.inputs.map((s, i) => (
@@ -150,6 +151,7 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   const removeEdge = useStore((s) => s.removeEdge);
   const select = useStore((s) => s.select);
   const addNode = useStore((s) => s.addNode);
+  const addComponentNode = useStore((s) => s.addComponentNode);
   const addNote = useStore((s) => s.addNote);
   const updateNote = useStore((s) => s.updateNote);
   const removeNote = useStore((s) => s.removeNote);
@@ -201,7 +203,7 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
       // Reflect selection so React Flow knows what to delete on Backspace/Delete.
       selected: n.id === selectedNodeId,
       zIndex: 1,
-      data: { type: n.type, error: errorNodeIds?.has(n.id) ?? false },
+      data: { type: n.type, label: n.title, error: errorNodeIds?.has(n.id) ?? false },
     }));
     return [...noteNodes, ...procNodes];
   }, [graph.nodes, graph.notes, selectedNodeId, errorNodeIds]);
@@ -260,7 +262,8 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
   );
 
   const onDragOver = useCallback((e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes(DND_NODE_MIME)) {
+    const t = e.dataTransfer.types;
+    if (t.includes(DND_NODE_MIME) || t.includes(DND_COMPONENT_MIME)) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
     }
@@ -268,14 +271,19 @@ export function GraphEditor({ errorNodeIds }: { errorNodeIds?: Set<string> }) {
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
+      const componentId = e.dataTransfer.getData(DND_COMPONENT_MIME);
       const type = e.dataTransfer.getData(DND_NODE_MIME);
-      if (!type) return;
+      if (!componentId && !type) return;
       e.preventDefault();
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      const id = addNode(type, position);
-      select(id);
+      if (componentId) {
+        const project = getProjects().find((p) => p.id === componentId);
+        if (project) select(addComponentNode(project, position));
+        return;
+      }
+      select(addNode(type, position));
     },
-    [addNode, screenToFlowPosition, select],
+    [addNode, addComponentNode, screenToFlowPosition, select],
   );
 
   const onPaneContextMenu = useCallback(

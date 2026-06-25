@@ -13,12 +13,13 @@ import { Icon } from './Icon';
 
 interface ProjectsModalProps {
   onOpen: (graph: Graph, name: string) => void;
+  onInsert: (project: Project) => void;
   captureThumbnail: () => Promise<string | null>;
   onClose: () => void;
 }
 
 /** Local project library: save the current model under a name, then reopen/manage it later. */
-export function ProjectsModal({ onOpen, captureThumbnail, onClose }: ProjectsModalProps) {
+export function ProjectsModal({ onOpen, onInsert, captureThumbnail, onClose }: ProjectsModalProps) {
   const [projects, setProjects] = useState<Project[]>(() => getProjects());
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +126,12 @@ export function ProjectsModal({ onOpen, captureThumbnail, onClose }: ProjectsMod
                     <span className="projcard__date">{new Date(p.updatedAt).toLocaleDateString()}</span>
                   </div>
                   <div className="projcard__actions">
+                    <button
+                      title="Insert into the current model as a component"
+                      onClick={() => onInsert(p)}
+                    >
+                      <Icon name="plus" size={13} />
+                    </button>
                     <button title="Save current model into this project" onClick={() => void overwrite(p)}>
                       <Icon name="save" size={13} />
                     </button>

@@ -1986,3 +1986,25 @@ body,
   color: #ff9b9b;
   border-color: #6b2a2a;
 }
+
+/* component inspector section */
+.inspector__component {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.inspector__compsrc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.inspector__seclabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}

@@ -454,6 +454,13 @@ body,
   width: 100%;
   height: 86px;
 }
+.nodetip__img {
+  display: block;
+  width: 100%;
+  height: 86px;
+  object-fit: cover;
+  border-radius: 7px;
+}
 .nodetip__head {
   display: flex;
   align-items: center;

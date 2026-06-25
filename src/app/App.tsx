@@ -23,9 +23,9 @@ import { Splitter } from '@/ui/Splitter';
 import { useLayout, clamp } from '@/ui/useLayout';
 import { LightsControl } from '@/ui/LightsControl';
 import { DEFAULT_LIGHTING, type Lighting } from '@/viewport/lighting';
-import { NodeTooltip } from '@/ui/NodeTooltip';
+import { NodeTooltip, ComponentTooltip } from '@/ui/NodeTooltip';
 import { DND_NODE_MIME, DND_COMPONENT_MIME } from '@/ui/dnd';
-import { getProjects } from '@/state/projects';
+import { getProjects, type Project } from '@/state/projects';
 import type { NodeDef } from '@/nodes/NodeDef';
 import { hasOnboarded, markOnboarded } from '@/ui/tour';
 
@@ -42,6 +42,7 @@ function NodePalette() {
   const byCategory = useMemo(() => nodeDefsByCategory(), []);
   const [query, setQuery] = useState('');
   const [hover, setHover] = useState<{ def: NodeDef; anchor: DOMRect } | null>(null);
+  const [compHover, setCompHover] = useState<{ project: Project; anchor: DOMRect } | null>(null);
 
   const q = query.trim().toLowerCase();
   // Saved projects shown as draggable assembly components (refreshed via the graph dep).
@@ -123,7 +124,12 @@ function NodePalette() {
               onDragStart={(e) => {
                 e.dataTransfer.setData(DND_COMPONENT_MIME, p.id);
                 e.dataTransfer.effectAllowed = 'copy';
+                setCompHover(null);
               }}
+              onMouseEnter={(e) =>
+                setCompHover({ project: p, anchor: e.currentTarget.getBoundingClientRect() })
+              }
+              onMouseLeave={() => setCompHover(null)}
               onClick={() => {
                 const id = addComponentNode(p, {
                   x: 80 + Math.random() * 120,
@@ -131,7 +137,6 @@ function NodePalette() {
                 });
                 select(id);
               }}
-              title={`Insert “${p.name}” as a component`}
             >
               <span className="palette__plus" aria-hidden="true">
                 +
@@ -148,6 +153,7 @@ function NodePalette() {
         <div className="panel__empty">No nodes match.</div>
       )}
       {hover && <NodeTooltip def={hover.def} anchor={hover.anchor} />}
+      {compHover && <ComponentTooltip project={compHover.project} anchor={compHover.anchor} />}
     </div>
   );
 }

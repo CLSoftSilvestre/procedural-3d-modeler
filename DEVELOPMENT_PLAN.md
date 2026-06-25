@@ -253,6 +253,12 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Component palette tooltips (thumbnail preview)
+- The palette "Components" items now show a rich hover tooltip (new `ComponentTooltip`) with the
+  project's saved **thumbnail**, name, a Component chip, its exposed **parameters** as chips, and
+  the built-in-transform note — matching the node tooltips. Factored a `tipPosition` helper. CSS
+  `.nodetip__img`. All checks clean.
+
 ### 2026-06-24 — Fix: per-part material overrides + Output fallback
 - **Bug:** in a multi-material merge, (1) untagged parts fell back to the *default* material,
   ignoring the Output's material socket, and (2) an Apply Material couldn't override a material the

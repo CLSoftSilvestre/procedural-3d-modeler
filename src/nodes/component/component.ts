@@ -16,6 +16,9 @@ export const componentNode: NodeDef = {
   category: 'Components',
   label: 'Component',
   description: 'An instance of another saved model — adjust its parameters and place it.',
+  // Added from the Projects library / palette "Components" group (which embeds a project),
+  // not from the generic node list — a bare instance has no sub-model to render.
+  hidden: true,
   inputs: [...transformInputs('Transform')],
   outputs: [{ id: 'geometry', label: 'Geometry', type: 'geometry' }],
 

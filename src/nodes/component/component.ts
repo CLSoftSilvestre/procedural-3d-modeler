@@ -24,15 +24,8 @@ export const componentNode: NodeDef = {
   },
 
   codegen(ctx) {
-    // Phase A: components render live but export as empty geometry. Assembly export (inlining
-    // the sub-model as a reusable function) is Phase B.
-    const v = ctx.uniqueVar('component');
-    return {
-      statements: [
-        `const ${v} = new THREE.BufferGeometry(); // TODO: component/assembly export coming soon`,
-      ],
-      outputVar: v,
-      imports: ['three'],
-    };
+    // Components are special-cased by the generator (it needs the per-node embedded graph to
+    // emit a reusable helper function). This fallback is unused in practice.
+    return { statements: [], outputVar: ctx.uniqueVar('component'), imports: ['three'] };
   },
 };

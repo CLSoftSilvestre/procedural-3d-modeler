@@ -253,6 +253,18 @@ booleans, deformers (→ M2).
 > Append newest entries at the top. One entry per working session.
 > Format: date — what was done — decisions — what's next.
 
+### 2026-06-24 — Components / assemblies (Phase B: export)
+- Assemblies now **export to three.js code**. Refactored `generate.ts` into a reusable
+  `buildBody(graph)` (geometry statements + merge + material) used for the host and recursively
+  for each sub-model. Each distinct component → one **nested helper function**
+  `part_<Name>(params = {…})` (deduped by source id + graph hash); each instance emits
+  `const componentN = part_X({ <param>: <value> }); …applyMatrix4(transform)`.
+- Helpers are declared at the top of the generated function body (hoisted, self-contained), so
+  the parity harness runs them as-is. Depth-guarded; animated sub-models bake at t=0 on export.
+- Works for both vanilla + R3F targets. Parity-tested (component with param override + transform
+  matches eval). +1 test (123 total). All checks clean.
+- Remaining (later): per-part materials, "update from source", component library panel.
+
 ### 2026-06-24 — Components / assemblies (Phase A: core)
 - **Reuse a saved model inside another as a parametric component** (SolidWorks-style assemblies).
   New `ComponentRef` on `GraphNode` (embedded snapshot of the source graph + its exposed params)
